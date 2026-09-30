@@ -1,5 +1,5 @@
-export const APP_VERSION = '2.0.0';
-export const SCHEMA_VERSION = 2;
+export const APP_VERSION = '3.0.0';
+export const SCHEMA_VERSION = 3;
 
 export const representations = {
   FULL: 'The relevant solo motor task can be practiced meaningfully in the configured environment.',

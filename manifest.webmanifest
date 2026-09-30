@@ -1,7 +1,7 @@
 {
   "name":"RENSA — Adaptive Combatives Recall",
   "short_name":"RENSA",
-  "description":"Compact solo combatives recall and maintenance PWA.",
+  "description":"Evidence-aware compact solo combatives recall and maintenance PWA.",
   "start_url":"./",
   "scope":"./",
   "display":"standalone",

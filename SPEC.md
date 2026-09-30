@@ -1,97 +1,219 @@
-# RENSA v1.0.0 — Frozen System Specification
+# RENSA v2.0.0 — Frozen System Specification
 
 ## 1. Mission
 
-RENSA is a compact, solo, apartment-compatible combatives **maintenance and retrieval** platform. It aggregates selected movements from the user's prior striking, judo, wrestling, Brazilian jiu-jitsu, Filipino martial arts and combatives experience without presenting itself as a complete course in any constituent discipline.
+RENSA is a compact, solo, apartment-compatible **combatives maintenance and retrieval engine** for a previously trained hybrid movement vocabulary drawn from striking, judo, wrestling, BJJ, Filipino martial arts and combatives.
 
-The training objective is rapid access to already-known motor vocabulary under increasing cue-selection, inhibition, laterality and task-switching demands.
+The system optimizes for retrieval, transition, inhibition, laterality and task switching. It does not claim to create discipline mastery or reproduce partner/live-resistance skill.
 
-## 2. Hard environmental constraints
+## 2. Hard environment
 
-- 72 × 24 × 1 inch yoga/exercise mat.
-- Very little usable floor space outside that footprint.
-- Apartment-compatible noise profile.
-- No training partner.
-- No throw completion or impact falling.
-- No bag or pads assumed.
-- Resistance band optional, never required.
-- Standing/compact movement favored.
+Default generation must remain compatible with:
+
+- 72 × 24 × 1 inch mat lane;
+- minimal usable floor area beyond that lane;
+- apartment-compatible noise;
+- no partner;
+- no bag or pads;
+- no completed throws;
+- no impact falling;
+- no solo strangulation pressure;
+- body only by default;
+- resistance band optional and never required.
 
 ## 3. Functional ontology
 
-RENSA organizes skills by functional use first, provenance second:
+Functional use is primary; martial provenance is metadata.
 
-`BASE → STRIKE → FLOW → SHOT → SPRAWL → THROW → CONTROL → RECOVER`
+`BASE · DEFEND · FRAME · FLOW · CLINCH · THROW · SHOT · SPRAWL · STRIKE · CONTROL · RECOVER · DISENGAGE`
 
-The first release excludes ground-fighting locomotion that cannot be performed comfortably inside the footprint.
+A library entry may be related to multiple disciplines, but each active session cue resolves to a concrete corpus ID.
 
-## 4. Representation integrity
+## 4. Representation classes
 
-Every entry carries one representation class: `FULL`, `SHADOW`, `PROXY`, `REFERENCE`, `DISABLED`.
+- `FULL`
+- `SHADOW`
+- `PROXY`
+- `REFERENCE`
+- `DISABLED`
 
-This classification is intentionally conservative. The UI never converts completion counts into a claim of mastery.
+Representation class describes what can honestly be rehearsed in the configured environment. It is not a proficiency grade.
 
-## 5. Weekly session
+## 5. Technique schema
 
-Frozen full-session budget: **50 minutes**.
+Every corpus entry supports:
 
-1. WAKE — 4 min
-2. BASE — 3 min
-3. WRESTLE — 3 min
-4. STRIKE — 6 min
-5. FLOW — 4 min
-6. TAKEDOWN — 11 min
-7. CONTROL — 4 min
-8. CHAIN — 8 min
-9. PRESSURE — 5 min
-10. DOWN / LOG — 2 min
+- stable ID;
+- display name;
+- spoken cue alias;
+- functional domain;
+- provenance;
+- representation class;
+- laterality: `none / bilateral / stance`;
+- session eligibility;
+- optional resistance-band compatibility;
+- prerequisites;
+- setup;
+- solo protocol;
+- checkpoints;
+- failure modes;
+- recovery rule;
+- representation limitation;
+- optional canonical source / RENSA variant relationship;
+- optional aliases and related techniques.
 
-Compact and QA-preview profiles exist for constrained days and release testing; FULL remains the normative weekly session.
+## 6. Evidence model
 
-## 6. Takedown maintenance
+The primitive performance record is a technique **Exposure Event**:
 
-Every weekly session touches all seven retained takedown families through a low-volume maintenance pulse. Two entries receive deeper rotating focus:
+- `techniqueId`
+- timestamp
+- session ID
+- context
+- side when meaningful
+- outcome: `clean / hesitant / miss / skipped / unrated`
+- whether it was a designated focus assessment
+- whether the parent session earned training credit
+- source (`session / pressure / assessment`)
 
-- A: o-soto-gari + double-leg
-- B: uchi-mata + o-uchi-gari
-- C: tai-otoshi + de-ashi-harai
-- D: ippon-seoi-nage + o-soto-gari
+`UNRATED` is valid and preferable to invented certainty.
 
-The rotation advances only when a weekly session is committed to the ledger.
+A weekly ledger entry separately records planned versus credited time, completion status, focus IDs, focus ratings, pain flag, block statuses and protocol events.
 
-## 7. Hubud
+## 7. Adaptive focus scheduler
 
-The library distinguishes **Hubud-Lubud (partner-origin)** from the RENSA **solo motor proxy**. v1.0 trains bilateral sequencing, compact hand organization, rhythm changes, reversal and clean recovery from sequence interruption. It explicitly does not claim to train tactile pressure-reading or live sensitivity.
+Cold start uses the four-pair coverage rotation inherited from v1 only until enough v2 focus evidence exists.
 
-## 8. Pressure engine
+Afterward each active takedown entry receives an explainable weight composed of:
 
-Pressure is informational rather than ballistic.
+- time since last credited focus exposure;
+- recent under-focus relative to the other retained entries;
+- recent explicit `miss / hesitant / clean` outcomes;
+- side-exposure imbalance where meaningful;
+- cooldown after appearing in the most recent credited focus pair.
 
-- P1 RECALL — random named movement.
-- P2 SIDE — movement plus left/right cue.
-- P3 INTERRUPT — CHANGE/RESET inhibition prompts.
-- P4 CHAIN — two-step cross-domain combinations.
-- P5 COMPRESSION — shorter selection intervals.
-- P6 BLIND — audio-first; screen hides movement name.
-- P7 CATEGORY — functional category only; practitioner self-selects an appropriate known movement.
-- P8 NOISE GATE — irrelevant spoken words are inserted and must be ignored.
+The two highest weighted entries become Focus A and Focus B. The UI surfaces concise reasons for selection.
 
-## 9. Band overlay
+No migrated v1 scalar recall score is transformed into fake per-technique evidence.
 
-Band mode is global and optional. Compatible throw entries receive a light-resistance upper-body connection note. No session depends on owning or using the band.
+## 8. Session plans
 
-## 10. Persistence
+### FULL — 50:00
 
-No server is used. Session history and settings live in localStorage. Export/import provides a portable JSON backup.
+1. WAKE — 4:00
+2. BASE — 3:00
+3. WRESTLE — 3:00
+4. STRIKE — 6:00
+5. FLOW — 4:00
+6. TAKEDOWN — 11:00
+7. CONTROL — 4:00
+8. CHAIN — 8:00
+9. PRESSURE — 5:00
+10. DOWN — 2:00
 
-## 11. Release invariants
+### COMPACT — 20:00
 
-The following must remain true for any v1.x patch:
+1. WAKE — 2:00
+2. BASE — 1:00
+3. WRESTLE — 1:30
+4. STRIKE — 4:00
+5. FLOW — 2:00
+6. TAKEDOWN — 4:00
+7. CONTROL — 1:30
+8. CHAIN — 2:00
+9. PRESSURE — 1:30
+10. DOWN — 0:30
 
-- GitHub Pages compatibility without a build step.
-- Relative URLs only.
-- Full offline shell after first successful online load.
-- No required external CDN/API.
-- No partner-dependent drill silently presented as full solo training.
-- No actual strangulation pressure prescribed in solo sessions.
-- No impact fall or completed throw generated under the default environment.
+Compact mode has explicit phase mixers; it is not generated by stretching one arbitrary FULL block.
+
+### QA PREVIEW — 5:00
+
+QA preview exercises the conductor but receives **no training credit, no evidence commit and no session-count increment**.
+
+## 9. Block accounting
+
+Each planned block owns `plannedMs`, `creditedMs` and status.
+
+- natural completion → `completed`;
+- manual NEXT before completion → `partial` or `skipped` depending on performed fraction;
+- manual BACK to an already completed block creates a bounded review replay with no additional planned-work credit.
+
+Reaching the final screen does not itself imply session completion. A weekly session is credited only when the plan reaches its end **and every planned block has reached its actual endpoint**. Any manually bypassed or partially performed block forces the ledger result to `partial` and prevents adaptive training credit.
+
+## 10. Clock integrity
+
+The conductor uses monotonic elapsed deltas rather than decrementing one second per callback.
+
+- timer callbacks repaint/accumulate elapsed time;
+- a callback gap greater than 2.5 seconds pauses the session instead of crediting uncertain time;
+- hiding/backgrounding the document pauses the session;
+- reloaded sessions restore paused;
+- time spent closed/backgrounded is never added retroactively.
+
+## 11. Active-session persistence
+
+Active weekly/pressure sessions are checkpointed to `rensa-active-v2`. The checkpoint contains only serializable state and always restores paused. Checkpoints older than 12 hours are considered stale and removed.
+
+## 12. Transition graph
+
+Chains contain real technique IDs and typed directed edges:
+
+- `from`
+- `to`
+- `trigger`
+- delay range
+
+Conduction presents one node at a time. A chain is not spoken as one memorized sentence.
+
+## 13. Pressure engine
+
+Difficulty is informational, not an instruction to increase physical violence or uncontrolled speed.
+
+- **P1 RECALL** — random named movement.
+- **P2 SIDE** — only movements with meaningful bilateral laterality receive LEFT/RIGHT.
+- **P3 INTERRUPT** — initiate a movement; receive CHANGE/RESET; CHANGE is followed by a replacement cue.
+- **P4 CHAIN** — graph nodes arrive sequentially.
+- **P5 COMPRESSION** — shorter selection interval with unchanged movement-control requirement.
+- **P6 BLIND** — movement text is hidden; audio remains primary.
+- **P7 CATEGORY** — functional category only; practitioner self-selects a familiar safe response.
+- **P8 NOISE GATE** — valid and irrelevant words use the same visual, tone, haptic and timing channel. No `IGNORE` label exists.
+
+Standalone pressure defaults to `UNRATED`; completion never generates a synthetic performance score.
+
+## 14. Hubud
+
+`Hubud-Lubud // Open-hand solo flow` remains a `PROXY`. It preserves bilateral sequencing/rhythm/reversal under the footprint but does not claim tactile sensitivity, partner timing or pressure-reading.
+
+Self-interruption in the Hubud block means reverse/restart or reset; it is distinct from the cross-domain interrupt block.
+
+## 15. Throw/shot nomenclature
+
+- Judo throw entries remain canonical techniques plus an explicit RENSA no-gi shadow variant.
+- Wrestling Double-Leg and Judo Morote-gari are separate corpus entries with a related-family relationship.
+- Morote-gari is reference-only in the active v2 regimen.
+- Standing Ezekiel hand-position recall explicitly distinguishes its RENSA no-gi adaptation from canonical sleeve-dependent sode-guruma-jime mechanics.
+
+## 16. Persistence schema
+
+Primary state key: `rensa-state-v2`  
+Active checkpoint key: `rensa-active-v2`  
+Legacy source key: `rensa-state-v1`
+
+The v1 key is read only when no v2 state exists and is not deleted after migration.
+
+Import validates and normalizes supported fields rather than shallow-merging arbitrary JSON.
+
+## 17. Release invariants
+
+Any v2.x patch must preserve:
+
+- GitHub Pages compatibility without a build step;
+- relative application asset URLs;
+- offline fallback after successful cache population;
+- no partner-only skill silently classified as fully solo-trainable;
+- no completed throws or impact falls under the default profile;
+- no solo neck-compression instruction;
+- no fabricated performance outcome;
+- no background/reload time credited as performed work;
+- optional band use never changes nominal session duration;
+- pressure escalation remains primarily informational/cognitive.

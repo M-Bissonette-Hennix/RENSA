@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="RENSA" />
-  <meta name="description" content="RENSA — compact solo combatives recall and maintenance." />
+  <meta name="description" content="RENSA — evidence-aware compact solo combatives recall and maintenance." />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./assets/icon-192.png" />
@@ -19,10 +19,11 @@
   <div id="app" class="app-shell">
     <header class="topbar">
       <button class="brand" data-route="today" aria-label="RENSA home">
-        <span class="brand-mark">連鎖</span>
+        <span class="brand-mark" aria-hidden="true">連鎖</span>
         <span><strong>RENSA</strong><small>ADAPTIVE COMBATIVES RECALL</small></span>
       </button>
       <div class="topbar-actions">
+        <button id="update-ready" class="icon-btn update-btn" hidden>UPDATE</button>
         <button id="audio-toggle" class="icon-btn" aria-label="Toggle audio cues" title="Audio cues">AUDIO</button>
         <button id="settings-open" class="icon-btn" aria-label="Open settings">SET</button>
       </div>
@@ -39,25 +40,29 @@
     </nav>
   </div>
 
-  <dialog id="settings-dialog" class="sheet">
+  <dialog id="settings-dialog" class="sheet" aria-labelledby="settings-title">
     <form method="dialog" class="sheet-inner" id="settings-form">
-      <div class="sheet-head"><div><span class="eyebrow">SYSTEM</span><h2>Environment profile</h2></div><button value="cancel" class="icon-btn">CLOSE</button></div>
+      <div class="sheet-head"><div><span class="eyebrow">SYSTEM</span><h2 id="settings-title">Environment profile</h2></div><button value="cancel" class="icon-btn">CLOSE</button></div>
       <p class="muted">The default profile is intentionally restrictive: solo, quiet, no-impact practice inside a 72 × 24 inch mat footprint.</p>
-      <label class="toggle-row"><span><strong>Resistance band overlay</strong><small>Show optional loaded-grip/entry variants where compatible.</small></span><input id="band-enabled" type="checkbox" /></label>
+      <label class="toggle-row"><span><strong>Resistance band overlay</strong><small>Show optional light-resistance entry variants where compatible.</small></span><input id="band-enabled" type="checkbox" /></label>
       <label class="toggle-row"><span><strong>Spoken cues</strong><small>Technique names, sides, transitions and phase changes.</small></span><input id="speech-enabled" type="checkbox" /></label>
       <label class="toggle-row"><span><strong>Transition tones</strong><small>Short Web Audio cues before spoken prompts.</small></span><input id="tones-enabled" type="checkbox" /></label>
+      <label class="toggle-row"><span><strong>Haptic cues</strong><small>Short vibration cue where supported by the device/browser.</small></span><input id="haptics-enabled" type="checkbox" /></label>
+      <label class="field"><span>Default stance</span><select id="stance-select"><option value="orthodox">ORTHODOX</option><option value="southpaw">SOUTHPAW</option></select></label>
       <label class="field"><span>Pressure default</span><select id="pressure-level"><option value="1">P1 — Recall</option><option value="2">P2 — Side</option><option value="3">P3 — Interrupt</option><option value="4">P4 — Chain</option><option value="5">P5 — Compression</option><option value="6">P6 — Blind</option><option value="7">P7 — Category</option><option value="8">P8 — Noise gate</option></select></label>
       <label class="field"><span>Weekly session</span><select id="session-mode"><option value="full">FULL — 50 min</option><option value="compact">COMPACT — 20 min</option><option value="preview">QA PREVIEW — 5 min</option></select></label>
       <div class="constraint-grid">
         <div><span>FOOTPRINT</span><strong>72 × 24 in</strong></div><div><span>PARTNER</span><strong>NONE</strong></div><div><span>IMPACT</span><strong>ZERO</strong></div><div><span>NOISE</span><strong>QUIET</strong></div>
       </div>
+      <div class="audio-check card"><span class="eyebrow">AUDIO CHECK</span><p class="muted">Test the exact cue channels before a screen-down session.</p><div class="button-row"><button id="test-tone" type="button" class="btn secondary">TONE</button><button id="test-speech" type="button" class="btn secondary">SPEECH</button><button id="test-haptic" type="button" class="btn secondary">HAPTIC</button></div><p id="wake-status" class="small-copy">Wake lock: not requested.</p></div>
       <div class="sheet-actions"><button id="export-data" type="button" class="btn secondary">EXPORT DATA</button><label class="btn secondary file-btn">IMPORT DATA<input id="import-data" type="file" accept="application/json" hidden></label><button value="save" class="btn primary">SAVE</button></div>
     </form>
   </dialog>
 
-  <dialog id="technique-dialog" class="sheet technique-sheet"><div id="technique-detail" class="sheet-inner"></div></dialog>
-  <dialog id="session-dialog" class="session-dialog"><div id="session-stage" class="session-stage"></div></dialog>
+  <dialog id="technique-dialog" class="sheet technique-sheet" aria-label="Technique detail"><div id="technique-detail" class="sheet-inner"></div></dialog>
+  <dialog id="session-dialog" class="session-dialog" aria-label="Active RENSA session"><div id="session-stage" class="session-stage"></div></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="screen-reader-cue" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
   <script type="module" src="./js/app.js"></script>
 </body>

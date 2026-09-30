@@ -1,12 +1,13 @@
-export const APP_VERSION = '3.0.0';
-export const SCHEMA_VERSION = 3;
+export const APP_VERSION = '4.0.0';
+export const SCHEMA_VERSION = 4;
 
 export const representations = {
   FULL: 'The relevant solo motor task can be practiced meaningfully in the configured environment.',
   SHADOW: 'A non-contact motor pattern can be rehearsed; resistance, timing and opponent interaction are absent.',
   PROXY: 'A useful surrogate preserves part of the skill, but a defining component is unavailable solo.',
   REFERENCE: 'Retained as knowledge / sequencing recall only in the current environment.',
-  DISABLED: 'Excluded from generated sessions under the current environment profile.'
+  DISABLED: 'Excluded from generated sessions under the current environment profile.',
+  INSTRUCTOR: 'Previously trained / instructor-derived material retained for provenance and recall context only. RENSA does not autonomously teach or generate its operational procedure.'
 };
 
 const T = (id,name,domain,provenance,representation,extra={}) => ({
@@ -242,7 +243,13 @@ export const glossary = [
   {term:'Sprawl',domain:'WRESTLING',definition:'Takedown-defense family usually involving hips/legs moving away from a shot. RENSA uses a low-impact step-back proxy.'},
   {term:'Penetration step',domain:'WRESTLING',definition:'Entry footwork used in many shots. RENSA constrains this to the available footprint and does not train collision/finish.'},
   {term:'Lead / rear',domain:'STRIKING',definition:'Stance-relative terminology used instead of assuming left/right striking mechanics.'},
-  {term:'Representation',domain:'RENSA',definition:'RENSA’s honesty label describing how much of a real skill can be meaningfully rehearsed in the configured solo environment.'}
+  {term:'Representation',domain:'RENSA',definition:'RENSA’s honesty label describing how much of a real skill can be meaningfully rehearsed in the configured solo environment.'},
+  {term:'Avoid — Stabilize — Resolve',domain:'STATE',definition:'Objective hierarchy preserved from the user’s course-derived notes: avoid entry into the problem where possible, stop deterioration after contact, then resolve only from a sufficiently stabilized state.'},
+  {term:'Timing error',domain:'STATE',definition:'A decision error in which a familiar action is selected at an incompatible moment or from an incompatible state. Kept distinct from motor-recall failure.'},
+  {term:'Termination bias',domain:'STATE',definition:'The tendency to mentally end a problem after an apparent success even though the relevant state has not actually resolved.'},
+  {term:'Goal-oriented action',domain:'STATE',definition:'RENSA evaluates whether a response family can satisfy the current objective; it does not require one aesthetically preferred technique.'},
+  {term:'MUC',domain:'COURSE PROVENANCE',definition:'Managing Unknown Contacts. Retained as course provenance for contact-management concepts; RENSA v4 uses only non-operational abstractions such as distance, communication, movement, hands and disengagement.'},
+  {term:'IFWA',domain:'COURSE PROVENANCE',definition:'In-Fight Weapon Access. Retained as instructor-derived provenance/reference only. RENSA v4 does not generate weapon-access mechanics or operational tool-use instruction.'}
 ];
 
 export const curriculum = [
@@ -254,5 +261,127 @@ export const curriculum = [
   {stage:6,name:'Clinch + off-balancing entries',goal:'Maintain selected no-gi judo entry representations.',requires:[1,2],techniques:['clinch-shadow','osoto','ouchi','deashi','uchimata','taiotoshi','seoi']},
   {stage:7,name:'Control-position recall',goal:'Preserve gross hand-position memory without compression.',requires:[2,6],techniques:['ezekiel','rnc']},
   {stage:8,name:'Transitions',goal:'Move between domains under sequential external cueing.',requires:[3,4,5,6],techniques:[],evidenceContext:'chain'},
-  {stage:9,name:'Pressure retrieval',goal:'Recall, inhibit, switch and self-select under informational load while physical execution remains controlled.',requires:[8],techniques:[],evidenceContext:'pressure'}
+  {stage:9,name:'Pressure retrieval',goal:'Recall, inhibit, switch and self-select under informational load while physical execution remains controlled.',requires:[8],techniques:[],evidenceContext:'pressure'},
+  {stage:10,name:'State reasoning',goal:'Identify the current problem state, objective and compatible response family without requiring one predetermined technique.',requires:[2,8,9],techniques:[],evidenceContext:'state'}
 ];
+
+export const environmentProfile = {
+  id:'apartment-solo-v4',
+  label:'Apartment // solo // zero-impact',
+  footprintInches:[72,24],
+  partner:false,
+  quiet:true,
+  impact:false,
+  liveResistance:false,
+  functionalWeapons:false,
+  liveFire:false,
+  inertToolDefault:false,
+  rule:'Generated v4 State Lab problems are cognitive/empty-hand only. Instructor-derived tool-context material may be indexed as reference but is never procedurally generated.'
+};
+
+export const provenanceClasses = {
+  RENSA_ABSTRACTION:{label:'RENSA ABSTRACTION',rank:3,description:'A design abstraction created for RENSA; not attributed as verbatim course doctrine.'},
+  COURSE_SYNTHESIS:{label:'COURSE-DERIVED SYNTHESIS',rank:2,description:'Abstracted from the user’s redacted post-course notes and memory; preserves provenance without claiming verbatim instructor wording.'},
+  PERSONAL_MEMORY:{label:'PERSONAL MEMORY',rank:1,description:'A recollection preserved as practitioner context and subject to later correction.'},
+  INSTRUCTOR_REFERENCE:{label:'INSTRUCTOR-ONLY REFERENCE',rank:2,description:'Previously trained sensitive/tool-context material retained only as provenance or indexing metadata; RENSA does not autonomously teach its procedure.'}
+};
+
+export const objectiveHierarchy = [
+  {id:'avoid',label:'AVOID',order:1,description:'Preserve distance, information and exit options so the problem does not become an entanglement.'},
+  {id:'stabilize',label:'STABILIZE',order:2,description:'Stop deterioration: recover posture, mobility, orientation or usable structure before attempting further resolution.'},
+  {id:'resolve',label:'RESOLVE',order:3,description:'End or exit the problem once the state is sufficiently stable. In v4 generated problems, resolution remains non-operational and empty-hand/cognitive.'}
+];
+
+export const stateAxes = {
+  distance:{label:'DISTANCE',values:{standoff:'STANDOFF',close:'CLOSE',contact:'CONTACT'}},
+  entanglement:{label:'ENTANGLEMENT',values:{none:'NONE',clinch:'CLINCHED',surface:'SURFACE-CONSTRAINED',ground:'GROUNDED'}},
+  orientation:{label:'ORIENTATION',values:{frontal:'FRONTAL',lateral:'LATERAL',turned:'TURNED',seated:'SEATED'}},
+  mobility:{label:'MOBILITY',values:{free:'FREE',restricted:'RESTRICTED',pinned:'PINNED',transitional:'TRANSITIONAL'}},
+  hands:{label:'HAND AVAILABILITY',values:{bothFree:'BOTH FREE',oneOccupied:'ONE OCCUPIED',oneUnavailable:'ONE UNAVAILABLE',bothEngaged:'BOTH ENGAGED'}},
+  information:{label:'INFORMATION',values:{unknown:'UNKNOWN',concerning:'CONCERNING',boundary:'BOUNDARY VIOLATED',confirmed:'CONFIRMED CONTACT',resolved:'RESOLVED'}},
+  objective:{label:'OBJECTIVE',values:{avoid:'AVOID',stabilize:'STABILIZE',resolve:'RESOLVE'}}
+};
+
+export const responseFamilies = [
+  {id:'OBSERVE',label:'OBSERVE / HOLD',domains:[],description:'Maintain awareness and avoid manufacturing action when the state does not require it.'},
+  {id:'VERBALIZE',label:'VERBAL BOUNDARY',domains:[],description:'Use communication/boundary-setting as a cognitive response channel. RENSA does not prescribe scripts as universal legal or tactical answers.'},
+  {id:'MOVE',label:'MOVE / MANAGE SPACE',domains:['BASE'],techniqueIds:['micro-footwork'],description:'Use compact movement to preserve or recover usable space while staying inside the configured footprint.'},
+  {id:'COVER',label:'COVER / ORGANIZE',domains:['DEFEND'],techniqueIds:['cover-shell'],description:'Organize a compact defensive posture and recover immediately.'},
+  {id:'FRAME',label:'FRAME',domains:['FRAME'],techniqueIds:['frame'],description:'Use the existing frame representation as a structural category; solo work rehearses geometry only.'},
+  {id:'CLINCH',label:'CLINCH / CONNECT',domains:['CLINCH'],techniqueIds:['clinch-shadow'],description:'Reference the existing no-contact clinch-entry representation where the state already contains physical contact.'},
+  {id:'OFF_BALANCE',label:'OFF-BALANCE / ENTRY',domains:['THROW','SHOT'],techniqueIds:['osoto','ouchi','deashi','uchimata','taiotoshi','seoi','double','morote'],description:'Select from previously trained entry representations; no throw completion is generated.'},
+  {id:'RECOVER_POSTURE',label:'RECOVER POSTURE',domains:['BASE','RECOVER'],techniqueIds:['base','breath-reset'],description:'Restore a stable, usable body organization rather than forcing a technique from a degraded position.'},
+  {id:'RECOVER_MOBILITY',label:'RECOVER MOBILITY',domains:['BASE','DISENGAGE'],techniqueIds:['micro-footwork','disengage'],description:'Regain the ability to move or exit without requiring one prescribed maneuver.'},
+  {id:'DISENGAGE',label:'DISENGAGE / EXIT',domains:['DISENGAGE'],techniqueIds:['disengage'],description:'Leave or reset when an exit is available; disengagement is treated as a successful terminal response.'}
+];
+
+const P = (id,title,prompt,state,allowedFamilies,extra={}) => ({
+  id,title,prompt,state,allowedFamilies,representation:'FULL',entryEligible:true,continuations:[],modality:'cognitive',
+  requirements:{partner:false,impact:false,functionalWeapons:false,liveFire:false},
+  provenance:{sourceClass:'RENSA_ABSTRACTION',confidence:'high',note:'RENSA state-model abstraction.'},
+  safety:'Cognitive decision rehearsal only. No weapon-use procedure is generated.',
+  ...extra
+});
+
+export const problemCards = [
+  P('unknown-standoff','Unknown contact // standoff','An unknown contact is closing ordinary conversational distance. No explicit attack is established.',
+    {distance:'standoff',entanglement:'none',orientation:'frontal',mobility:'free',hands:'bothFree',information:'unknown',objective:'avoid'},
+    ['OBSERVE','VERBALIZE','MOVE','DISENGAGE'],{
+      variants:{orientation:['frontal','lateral'],hands:['bothFree','oneOccupied']},continuations:['boundary-respected','boundary-continues'],
+      provenance:{sourceClass:'COURSE_SYNTHESIS',confidence:'high',note:'Abstracted from MUC/contact-management themes in the user’s redacted course notes; not a verbatim course script.'}
+    }),
+  P('one-hand-contact','Unknown contact // one hand occupied','An unknown contact is approaching while one hand is occupied by an ordinary object. Mobility is still available.',
+    {distance:'standoff',entanglement:'none',orientation:'lateral',mobility:'free',hands:'oneOccupied',information:'concerning',objective:'avoid'},
+    ['OBSERVE','VERBALIZE','MOVE','DISENGAGE'],{
+      continuations:['boundary-respected','boundary-continues'],
+      provenance:{sourceClass:'RENSA_ABSTRACTION',confidence:'high',note:'Safe resource-constraint abstraction derived from the hand-availability axis.'}
+    }),
+  P('boundary-respected','Boundary respected','The contact stops closing distance and the immediate boundary problem de-escalates.',
+    {distance:'standoff',entanglement:'none',orientation:'frontal',mobility:'free',hands:'bothFree',information:'resolved',objective:'avoid'},
+    ['OBSERVE','MOVE','DISENGAGE'],{entryEligible:false,continuations:[],provenance:{sourceClass:'COURSE_SYNTHESIS',confidence:'high',note:'Models a non-escalatory successful branch: the problem can end without physical action.'}}),
+  P('boundary-continues','Boundary violation // distance still closing','The contact continues closing distance after a clear boundary. You still have room to move and are not yet entangled.',
+    {distance:'close',entanglement:'none',orientation:'frontal',mobility:'free',hands:'bothFree',information:'boundary',objective:'avoid'},
+    ['VERBALIZE','MOVE','FRAME','DISENGAGE','COVER'],{
+      continuations:['contact-entangled','exit-opens'],
+      provenance:{sourceClass:'COURSE_SYNTHESIS',confidence:'medium',note:'RENSA abstraction of the course-derived graduated-response and distance-management concepts; no claim of universal tactical prescription.'}
+    }),
+  P('contact-entangled','Contact state // entangled','Physical contact has already occurred. Movement is restricted and both hands are engaged in managing the contact.',
+    {distance:'contact',entanglement:'clinch',orientation:'frontal',mobility:'restricted',hands:'bothEngaged',information:'confirmed',objective:'stabilize'},
+    ['FRAME','CLINCH','RECOVER_POSTURE','RECOVER_MOBILITY','OFF_BALANCE','DISENGAGE'],{
+      continuations:['surface-constrained','mobility-restored'],
+      provenance:{sourceClass:'COURSE_SYNTHESIS',confidence:'high',note:'Abstracted from the course-derived principle that positional stabilization precedes further resolution. Tool access is intentionally excluded.'}
+    }),
+  P('surface-constrained','Surface-constrained contact','You are still in contact and a nearby wall/surface restricts movement. No impact or wall-resistance drill is permitted in the apartment profile.',
+    {distance:'contact',entanglement:'surface',orientation:'lateral',mobility:'pinned',hands:'bothEngaged',information:'confirmed',objective:'stabilize'},
+    ['FRAME','RECOVER_POSTURE','RECOVER_MOBILITY','CLINCH','DISENGAGE'],{
+      continuations:['mobility-restored'],representation:'PROXY',
+      provenance:{sourceClass:'COURSE_SYNTHESIS',confidence:'medium',note:'State-only abstraction of constrained mobility. RENSA does not instruct wall-fighting mechanics.'}
+    }),
+  P('mobility-restored','Mobility restored // exit available','Posture and mobility have recovered enough that a clear exit is available.',
+    {distance:'close',entanglement:'none',orientation:'lateral',mobility:'transitional',hands:'bothFree',information:'confirmed',objective:'resolve'},
+    ['MOVE','DISENGAGE','OBSERVE'],{
+      continuations:['continuation-check'],
+      provenance:{sourceClass:'RENSA_ABSTRACTION',confidence:'high',note:'Resolution is deliberately represented as exit/continued assessment rather than mandatory escalation.'}
+    }),
+  P('exit-opens','Exit opens','A clean disengagement path becomes available before physical entanglement occurs.',
+    {distance:'close',entanglement:'none',orientation:'lateral',mobility:'transitional',hands:'bothFree',information:'boundary',objective:'resolve'},
+    ['MOVE','DISENGAGE','OBSERVE'],{continuations:['continuation-check'],provenance:{sourceClass:'RENSA_ABSTRACTION',confidence:'high',note:'Tests whether the operator recognizes disengagement as a successful outcome.'}}),
+  P('continuation-check','Continuation check','The first problem appears to have ended. Maintain orientation long enough to verify that the state is actually resolved.',
+    {distance:'standoff',entanglement:'none',orientation:'frontal',mobility:'free',hands:'bothFree',information:'concerning',objective:'stabilize'},
+    ['OBSERVE','MOVE','DISENGAGE'],{
+      entryEligible:false,continuations:['boundary-respected'],
+      provenance:{sourceClass:'COURSE_SYNTHESIS',confidence:'high',note:'Abstracts the anti-termination-bias lesson from the user’s course-derived notes without recreating a force-on-force scenario.'}
+    }),
+  P('grounded-reference','Grounded entanglement // reference only','A grounded entanglement state exists in the wider curriculum, but the configured floor and solo environment do not support physical rehearsal.',
+    {distance:'contact',entanglement:'ground',orientation:'seated',mobility:'pinned',hands:'bothEngaged',information:'confirmed',objective:'stabilize'},
+    ['RECOVER_POSTURE','RECOVER_MOBILITY','DISENGAGE'],{
+      representation:'REFERENCE',entryEligible:false,continuations:[],
+      provenance:{sourceClass:'COURSE_SYNTHESIS',confidence:'high',note:'Preserved only to keep the state graph complete; no ground technique is generated in the apartment profile.'}
+    })
+];
+
+export const instructorReferenceDomains = [
+  {id:'ifwa-tool-context',name:'IFWA / tool-context material',representation:'INSTRUCTOR',sourceClass:'INSTRUCTOR_REFERENCE',description:'Previously trained tool-context material may be indexed here by provenance. RENSA v4 deliberately does not encode or generate access, draw, firing, retention, manipulation, or other operational weapon procedures.'},
+  {id:'dry-practice-boundary',name:'Dry-practice domain boundary',representation:'INSTRUCTOR',sourceClass:'RENSA_ABSTRACTION',description:'Future dry-practice support, if ever enabled, must live behind a separate environment gate and operate only as a conductor around user/instructor-authored material. It is not part of v4 generated training.'}
+];
+

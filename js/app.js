@@ -1,22 +1,27 @@
 import {
   APP_VERSION, SCHEMA_VERSION, techniques, techniqueById, chains, sessionTemplates,
   focusPool, fallbackFocusRotation, pressureCategories, noiseCues, representations,
-  glossary, curriculum
+  glossary, curriculum, environmentProfile, provenanceClasses, objectiveHierarchy,
+  stateAxes, responseFamilies, problemCards, instructorReferenceDomains
 } from './data.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
-const STORAGE = 'rensa-state-v3';
+const STORAGE = 'rensa-state-v4';
+const V3_STORAGE = 'rensa-state-v3';
 const V2_STORAGE = 'rensa-state-v2';
 const V1_STORAGE = 'rensa-state-v1';
-const ACTIVE_STORAGE = 'rensa-active-v3';
+const ACTIVE_STORAGE = 'rensa-active-v4';
+const V3_ACTIVE_STORAGE = 'rensa-active-v3';
 const V2_ACTIVE_STORAGE = 'rensa-active-v2';
 const MAX_LOGS = 250;
 const MAX_EVIDENCE = 4000;
+const MAX_STATE_DECISIONS = 1500;
 const ACTIVE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 const VALID_RESULTS = new Set(['clean','hesitant','miss','skipped','unrated']);
 const RATED_RESULTS = new Set(['clean','hesitant','miss']);
-const VALID_ROUTES = new Set(['today','pressure','library','chains','ledger']);
+const VALID_ROUTES = new Set(['today','pressure','library','state','ledger']);
+const VALID_STATE_RESULTS = new Set(['compatible','outside-model','unsure']);
 const VALID_MODES = new Set(['full','compact','preview']);
 const VALID_STANCES = new Set(['orthodox','southpaw']);
 
@@ -25,6 +30,7 @@ const defaultState = {
   route: 'today', band: false, speech: true, tones: true, haptics: true,
   stance: 'orthodox', pressureLevel: 3, sessionMode: 'full',
   logs: [], evidence: [], sessionCount: 0, heldTechniques: [], techniqueNotes: {},
+  stateDecisions: [],
   lastVersion: APP_VERSION, migratedFrom: null
 };
 
@@ -37,6 +43,7 @@ let toastTimer = null;
 let serviceRegistration = null;
 let pendingWorker = null;
 let pendingReload = false;
+let stateLab = null;
 
 function uid(prefix='rensa') {
   if (globalThis.crypto?.randomUUID) return `${prefix}-${crypto.randomUUID()}`;
@@ -62,6 +69,10 @@ function toast(msg){const el=$('#toast');if(!el)return;el.textContent=msg;el.cla
 function isHeld(id){return state.heldTechniques.includes(id);}
 function activeTechnique(id){const t=techniqueById(id);return !!t&&t.sessionEligible!==false&&!isHeld(id);}
 function activeFocusPool(){return focusPool.filter(activeTechnique);}
+function responseFamilyById(id){return responseFamilies.find(f=>f.id===id)||null;}
+function problemById(id){return problemCards.find(p=>p.id===id)||null;}
+function axisLabel(axis,value){return stateAxes[axis]?.values?.[value]||String(value||'—').toUpperCase();}
+function objectiveById(id){return objectiveHierarchy.find(o=>o.id===id)||null;}
 
 function sanitizeProtocolEvent(e){if(!e||typeof e!=='object')return null;return {at:isValidDate(e.at)?new Date(e.at).toISOString():null,type:typeof e.type==='string'?e.type:'event',reason:typeof e.reason==='string'?e.reason:null,block:typeof e.block==='string'?e.block:null,from:typeof e.from==='string'?e.from:null,to:typeof e.to==='string'?e.to:null,creditedRatio:Number.isFinite(e.creditedRatio)?clamp(e.creditedRatio,0,1):null};}
 function sanitizeLog(l){
@@ -112,6 +123,15 @@ function sanitizeEvidence(e){
     source:typeof e.source==='string'?e.source:'session'
   };
 }
+function sanitizeStateDecision(d){
+  if(!d||typeof d!=='object'||!isValidDate(d.date)||!problemById(d.problemId))return null;
+  const selectedFamily=typeof d.selectedFamily==='string'&&responseFamilyById(d.selectedFamily)?d.selectedFamily:null;
+  let result=VALID_STATE_RESULTS.has(d.result)?d.result:'unsure';if(!selectedFamily&&result!=='unsure')result='unsure';
+  const sv=d.stateVector&&typeof d.stateVector==='object'?d.stateVector:{};
+  const stateVector={};
+  for(const [axis,def] of Object.entries(stateAxes)){const val=sv[axis];if(val&&Object.prototype.hasOwnProperty.call(def.values,val))stateVector[axis]=val;else stateVector[axis]=problemById(d.problemId).state[axis];}
+  const snap=Array.isArray(d.allowedFamiliesSnapshot)?d.allowedFamiliesSnapshot.filter(id=>responseFamilyById(id)):[];return {id:typeof d.id==='string'?d.id:uid('state'),date:new Date(d.date).toISOString(),problemId:d.problemId,problemTitleSnapshot:typeof d.problemTitleSnapshot==='string'?d.problemTitleSnapshot.slice(0,240):problemById(d.problemId).title,stateVector,selectedFamily,selectedFamilyLabelSnapshot:typeof d.selectedFamilyLabelSnapshot==='string'?d.selectedFamilyLabelSnapshot.slice(0,160):(selectedFamily?responseFamilyById(selectedFamily)?.label:null),result,objective:stateVector.objective,depth:Math.max(0,Math.round(Number(d.depth)||0)),provenanceClass:typeof d.provenanceClass==='string'&&provenanceClasses[d.provenanceClass]?d.provenanceClass:null,modelVersion:typeof d.modelVersion==='string'?d.modelVersion:APP_VERSION,allowedFamiliesSnapshot:snap.length?snap:problemById(d.problemId).allowedFamilies.slice()};
+}
 function sanitizeNotes(v){const out={};if(!v||typeof v!=='object')return out;for(const [id,note] of Object.entries(v)){if(techniqueById(id)&&typeof note==='string'&&note.trim())out[id]=note.slice(0,2000);}return out;}
 function sanitizeState(raw){
   const r=raw&&typeof raw==='object'?raw:{};
@@ -122,7 +142,7 @@ function sanitizeState(raw){
   return {
     ...defaultState,
     schemaVersion:SCHEMA_VERSION,
-    route:VALID_ROUTES.has(r.route)?r.route:'today',
+    route:r.route==='chains'?'state':(VALID_ROUTES.has(r.route)?r.route:'today'),
     band:bool(r.band,false), speech:bool(r.speech,true), tones:bool(r.tones,true), haptics:bool(r.haptics,true),
     stance:VALID_STANCES.has(r.stance)?r.stance:'orthodox',
     pressureLevel:clamp(Number(r.pressureLevel)||3,1,8),
@@ -131,10 +151,12 @@ function sanitizeState(raw){
     sessionCount:Math.max(0,Math.round(Number(r.sessionCount)||0)),
     heldTechniques:held,
     techniqueNotes:sanitizeNotes(r.techniqueNotes),
+    stateDecisions:(Array.isArray(r.stateDecisions)?r.stateDecisions:[]).map(sanitizeStateDecision).filter(Boolean).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date)).slice(-MAX_STATE_DECISIONS),
     lastVersion:APP_VERSION,
     migratedFrom:typeof r.migratedFrom==='string'?r.migratedFrom:null
   };
 }
+function migrateV3(raw){const base=sanitizeState(raw);base.migratedFrom='3.0.0';base.lastVersion=APP_VERSION;return base;}
 function migrateV2(raw){const base=sanitizeState(raw);base.migratedFrom='2.0.0';base.lastVersion=APP_VERSION;return base;}
 function migrateV1(raw){
   const base=sanitizeState(raw);
@@ -142,10 +164,12 @@ function migrateV1(raw){
   base.evidence=[];base.migratedFrom='1.0.0';base.lastVersion=APP_VERSION;return base;
 }
 function readStoredJSON(key){try{const raw=localStorage.getItem(key);if(!raw)return null;const parsed=JSON.parse(raw);return parsed&&typeof parsed==='object'?parsed:null;}catch{return null;}}
+function plausibleState(raw){return !!raw&&typeof raw==='object'&&(Number.isFinite(Number(raw.schemaVersion))||Array.isArray(raw.logs)||Array.isArray(raw.evidence)||Array.isArray(raw.stateDecisions)||typeof raw.route==='string');}
 function loadState(){
-  const current=readStoredJSON(STORAGE);if(current)return sanitizeState(current);
-  const v2=readStoredJSON(V2_STORAGE);if(v2){const migrated=migrateV2(v2);try{localStorage.setItem(STORAGE,JSON.stringify(migrated));}catch{}return migrated;}
-  const v1=readStoredJSON(V1_STORAGE);if(v1){const migrated=migrateV1(v1);try{localStorage.setItem(STORAGE,JSON.stringify(migrated));}catch{}return migrated;}
+  const current=readStoredJSON(STORAGE);if(plausibleState(current))return sanitizeState(current);
+  const v3=readStoredJSON(V3_STORAGE);if(plausibleState(v3)){const migrated=migrateV3(v3);try{localStorage.setItem(STORAGE,JSON.stringify(migrated));}catch{}return migrated;}
+  const v2=readStoredJSON(V2_STORAGE);if(plausibleState(v2)){const migrated=migrateV2(v2);try{localStorage.setItem(STORAGE,JSON.stringify(migrated));}catch{}return migrated;}
+  const v1=readStoredJSON(V1_STORAGE);if(plausibleState(v1)){const migrated=migrateV1(v1);try{localStorage.setItem(STORAGE,JSON.stringify(migrated));}catch{}return migrated;}
   return {...defaultState};
 }
 function saveState(){state.lastVersion=APP_VERSION;state.schemaVersion=SCHEMA_VERSION;localStorage.setItem(STORAGE,JSON.stringify(state));}
@@ -166,10 +190,11 @@ function sanitizeSnapshot(raw){
 }
 function loadSnapshot(){
   const own=readStoredJSON(ACTIVE_STORAGE);if(own){const snap=sanitizeSnapshot(own);if(snap)return snap;try{localStorage.removeItem(ACTIVE_STORAGE);}catch{}}
+  const prior3=readStoredJSON(V3_ACTIVE_STORAGE);if(prior3){const snap=sanitizeSnapshot(prior3);if(snap){try{localStorage.setItem(ACTIVE_STORAGE,JSON.stringify(snap));}catch{}return snap;}try{localStorage.removeItem(V3_ACTIVE_STORAGE);}catch{}}
   const prior=readStoredJSON(V2_ACTIVE_STORAGE);if(prior){const snap=sanitizeSnapshot(prior);if(snap){try{localStorage.setItem(ACTIVE_STORAGE,JSON.stringify(snap));}catch{}return snap;}try{localStorage.removeItem(V2_ACTIVE_STORAGE);}catch{}}
   return null;
 }
-function clearSnapshot(){localStorage.removeItem(ACTIVE_STORAGE);localStorage.removeItem(V2_ACTIVE_STORAGE);}
+function clearSnapshot(){localStorage.removeItem(ACTIVE_STORAGE);localStorage.removeItem(V3_ACTIVE_STORAGE);localStorage.removeItem(V2_ACTIVE_STORAGE);}
 function persistActive(){
   if(!activeSession)return;
   const s=activeSession;
@@ -235,7 +260,7 @@ function render(){
   if(state.route==='today')v.innerHTML=todayView();
   if(state.route==='pressure')v.innerHTML=pressureView();
   if(state.route==='library')v.innerHTML=libraryView();
-  if(state.route==='chains')v.innerHTML=chainsView();
+  if(state.route==='state')v.innerHTML=stateView();
   if(state.route==='ledger')v.innerHTML=ledgerView();
   bindView();
 }
@@ -244,10 +269,16 @@ function bindView(){
   $('#resume-saved')?.addEventListener('click',resumeSavedSession);
   $('#discard-saved')?.addEventListener('click',()=>{if(confirm('Discard the saved in-progress session?')){clearSnapshot();render();}});
   $('#start-pressure')?.addEventListener('click',()=>startPressureStandalone(Number($('#pressure-select').value),Number($('#pressure-duration').value)));
-  $('#clear-ledger')?.addEventListener('click',()=>{if(confirm('Clear RENSA v3 ledger and evidence? Preserved v1/v2 storage keys are not touched.')){state.logs=[];state.evidence=[];state.sessionCount=0;saveState();render();}});
+  $('#clear-ledger')?.addEventListener('click',()=>{if(confirm('Clear RENSA v4 ledger and technique evidence? State Lab decisions are separate. Preserved v1/v2/v3 storage keys are not touched.')){state.logs=[];state.evidence=[];state.sessionCount=0;saveState();render();}});
   $('#library-search')?.addEventListener('input',renderLibraryCards);
   $$('.filter').forEach(b=>b.addEventListener('click',()=>{$$('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderLibraryCards();}));
   $$('[data-delete-log]').forEach(b=>b.addEventListener('click',()=>deleteLog(b.dataset.deleteLog)));
+  $('#state-new')?.addEventListener('click',()=>{stateLab=compileProblem();render();});
+  $('#state-unsure')?.addEventListener('click',()=>answerStateProblem(null,'unsure'));
+  $('#state-continue')?.addEventListener('click',continueStateProblem);
+  $('#clear-state-evidence')?.addEventListener('click',()=>{if(confirm('Clear RENSA v4 State Lab decisions? Technique/session evidence is not affected.')){state.stateDecisions=[];stateLab=null;saveState();render();}});
+  $$('[data-delete-state]').forEach(b=>b.addEventListener('click',()=>deleteStateDecision(b.dataset.deleteState)));
+  $$('[data-state-family]').forEach(b=>b.addEventListener('click',()=>answerStateProblem(b.dataset.stateFamily)));
 }
 
 document.addEventListener('click',e=>{
@@ -290,6 +321,7 @@ function importCandidate(parsed){
   const schema=Number(parsed?.schemaVersion ?? parsed?.state?.schemaVersion ?? 0),payload=parsed?.state??parsed;
   if(schema>SCHEMA_VERSION)throw new Error('future-schema');
   if(schema===SCHEMA_VERSION)return sanitizeState(payload);
+  if(schema===3)return migrateV3(payload);
   if(schema===2)return migrateV2(payload);
   if(schema===1)return migrateV1(payload);
   if(schema===0&&(parsed?.app==='RENSA'||Array.isArray(payload?.logs)||Number.isFinite(payload?.sessionCount)))return migrateV1(payload);
@@ -299,7 +331,7 @@ async function importData(e){
   const file=e.target.files?.[0];if(!file)return;
   try{
     const parsed=JSON.parse(await file.text()),candidate=importCandidate(parsed);
-    if(!confirm(`Replace current RENSA v3 data with this validated import?\n\nLogs: ${candidate.logs.length}\nEvidence events: ${candidate.evidence.length}\nHeld techniques: ${candidate.heldTechniques.length}`))return;
+    if(!confirm(`Replace current RENSA v4 data with this validated import?\n\nLogs: ${candidate.logs.length}\nEvidence events: ${candidate.evidence.length}\nHeld techniques: ${candidate.heldTechniques.length}\nState decisions: ${candidate.stateDecisions.length}`))return;
     state=candidate;saveState();clearSnapshot();
     const importedSnap=sanitizeSnapshot(parsed?.activeCheckpoint);if(importedSnap)localStorage.setItem(ACTIVE_STORAGE,JSON.stringify(importedSnap));
     render();toast('Validated data import complete');
@@ -336,7 +368,7 @@ function fallbackFocusPair(pool){
 function contextWeight(e){if(e.context==='focus-assessment')return 1.4;if(/^dynamic:focus-/.test(e.context))return 1.25;if(/^pressure:/.test(e.context))return 1.15;if(/maintenance|compactTakedown/.test(e.context))return 1;if(/^dynamic:chains|^dynamic:interrupt|chain/.test(e.context))return .85;return 1;}
 function focusDecision(){
   const pool=activeFocusPool(),adaptiveEvents=state.evidence.filter(e=>pool.includes(e.techniqueId)&&e.adaptiveCredit&&RATED_RESULTS.has(e.result));
-  if(adaptiveEvents.length<2){const ids=fallbackFocusPair(pool);return {ids,details:ids.map(()=>({score:0,reasons:['coverage rotation while v3 rated evidence accumulates']})),adaptive:false};}
+  if(adaptiveEvents.length<2){const ids=fallbackFocusPair(pool);return {ids,details:ids.map(()=>({score:0,reasons:['coverage rotation while v4 rated evidence accumulates']})),adaptive:false};}
   const recentFocusSessionIds=[...new Set(state.evidence.filter(e=>e.focus&&e.exposureCredit&&pool.includes(e.techniqueId)).sort((a,b)=>Date.parse(b.date)-Date.parse(a.date)).map(e=>e.sessionId))].slice(0,8);
   const latestWeekly=state.logs.find(l=>String(l.type).startsWith('Weekly')&&['completed','partial'].includes(l.status)&&Number(l.creditedRatio||0)>=.5);
   const rows=pool.map((id,index)=>{
@@ -358,9 +390,9 @@ function focusDecision(){
 }
 function todayView(){
   const decision=focusDecision(),focus=decision.ids.map(techniqueById),plan=planForMode(),summary=phaseSummary(plan),total=planDuration(plan);
-  return `${activeResumeCard()}<section class="hero"><span class="eyebrow">RELEASE ${APP_VERSION} // FIELD ENGINE 3</span><h1>RECALL<br>UNDER LOAD.</h1><p>Compact solo combatives maintenance for an existing hybrid skill set. v3 preserves partial-session evidence honestly, learns from rated misses outside the focus block, balances laterality and cue coverage, and lets you hold specific techniques out of generated training without deleting them from the reference corpus.</p></section>
+  return `${activeResumeCard()}<section class="hero"><span class="eyebrow">RELEASE ${APP_VERSION} // STATE ENGINE 1</span><h1>RECALL<br>UNDER LOAD.</h1><p>Compact solo combatives maintenance now sits beneath a separate state-reasoning layer. v4 preserves the field-hardened v3 conductor while adding Problem Cards, objective hierarchy, provenance, response-family selection, and an explicit instructor-only boundary for tool-context material.</p></section>
   <div class="meta-strip"><div><span>SPACE</span><strong>72 × 24 IN</strong></div><div><span>STANCE</span><strong>${state.stance.toUpperCase()}</strong></div><div><span>BAND</span><strong>${state.band?'ENABLED':'OPTIONAL / OFF'}</strong></div><div><span>SESSION</span><strong>${fmtSec(total)}</strong></div></div>
-  <section class="card session-card"><div class="session-title"><div><span class="eyebrow">${state.sessionMode==='preview'?'QA // NO TRAINING CREDIT':`WEEKLY // CREDITED ${state.sessionCount}`}</span><h2>Adaptive Combatives Recall</h2><p class="muted">${decision.adaptive?'Focus uses credited exposure plus rated evidence from focus, maintenance, chains and pressure, with recency, side balance and cooldown.':'Fallback coverage rotation remains active until v3 accumulates at least two rated evidence events.'}</p></div><span class="duration-pill">${fmtSec(total)}</span></div>
+  <section class="card session-card"><div class="session-title"><div><span class="eyebrow">${state.sessionMode==='preview'?'QA // NO TRAINING CREDIT':`WEEKLY // CREDITED ${state.sessionCount}`}</span><h2>Adaptive Combatives Recall</h2><p class="muted">${decision.adaptive?'Focus uses credited exposure plus rated evidence from focus, maintenance, chains and pressure, with recency, side balance and cooldown.':'Fallback coverage rotation remains active until v4 accumulates at least two rated technique-evidence events.'}</p></div><span class="duration-pill">${fmtSec(total)}</span></div>
   <div class="focus-row"><span class="focus-chip">FOCUS A // ${esc(focus[0]?.name||'—')}</span><span class="focus-chip">FOCUS B // ${esc(focus[1]?.name||'—')}</span><span class="focus-chip">PRESSURE // P${state.pressureLevel}</span>${state.heldTechniques.length?`<span class="focus-chip hold-chip">HELD // ${state.heldTechniques.length}</span>`:''}</div>
   <div class="adaptive-reasons"><small>A // ${esc(decision.details[0]?.reasons.join(' · ')||'—')}</small><small>B // ${esc(decision.details[1]?.reasons.join(' · ')||'—')}</small></div>
   <div class="phase-preview">${summary.map(x=>`<div class="phase-line"><span>${x.phase}</span><em>${phaseDescription(x.phase)}</em><strong>${fmtSec(x.seconds)}</strong></div>`).join('')}</div>
@@ -371,14 +403,14 @@ function todayView(){
 function statCards(){
   const total=state.logs.reduce((a,l)=>a+(l.creditedMinutes||0),0),last=state.logs[0],adaptive=state.evidence.filter(e=>e.adaptiveCredit&&RATED_RESULTS.has(e.result)).length;
   const stats=[['WEEKLY',state.sessionCount],['TOTAL MIN',Math.round(total)],['RATED EVIDENCE',adaptive],['LAST STATUS',last?String(last.status).toUpperCase():'—']];
-  return stats.map(s=>`<div class="card stat-card"><span class="eyebrow">${s[0]}</span><strong>${esc(s[1])}</strong><small>${s[0]==='RATED EVIDENCE'?'scheduler-eligible explicit outcomes':'v3 field ledger'}</small></div>`).join('');
+  return stats.map(s=>`<div class="card stat-card"><span class="eyebrow">${s[0]}</span><strong>${esc(s[1])}</strong><small>${s[0]==='RATED EVIDENCE'?'scheduler-eligible explicit outcomes':'v4 field ledger'}</small></div>`).join('');
 }
-function pressureView(){return `${activeResumeCard()}<section class="hero"><span class="eyebrow">PRESSURE ENGINE 3</span><h1>ACCESS,<br>NOT PANIC.</h1><p>Pressure difficulty is informational. v3 retains stateful interruption and non-leaking P8 while adding anti-repeat cue bags, balanced bilateral sampling, and evidence that remains valid even when a pressure session is saved partial.</p></section>
+function pressureView(){return `${activeResumeCard()}<section class="hero"><span class="eyebrow">PRESSURE ENGINE 3</span><h1>ACCESS,<br>NOT PANIC.</h1><p>Pressure difficulty remains informational. v4 retains the field-hardened Pressure Engine 3 unchanged while State Lab develops decision selection separately, preventing a new cognitive subsystem from silently changing the weekly motor conductor before field evidence exists.</p></section>
 <section class="card"><label class="field"><span>LEVEL</span><select id="pressure-select">${[1,2,3,4,5,6,7,8].map(n=>`<option value="${n}" ${n===state.pressureLevel?'selected':''}>P${n} — ${pressureName(n)}</option>`).join('')}</select></label><label class="field"><span>DURATION</span><select id="pressure-duration"><option value="120">2 MIN</option><option value="180" selected>3 MIN</option><option value="300">5 MIN</option></select></label><div class="callout">P8 deliberately uses the same tone, haptic, visual treatment and timing channel for valid and irrelevant words. The distinction exists only in the vocabulary.</div><div class="button-row" style="margin-top:16px"><button id="start-pressure" class="btn primary">START PRESSURE</button></div></section>
 <section class="section"><div class="section-head"><div><span class="eyebrow">LADDER</span><h2>Pressure architecture</h2></div></div><div class="ledger-list">${[1,2,3,4,5,6,7,8].map(n=>`<div class="card"><span class="eyebrow">P${n}</span><h3 style="margin:7px 0">${pressureName(n)}</h3><p class="muted" style="font-size:12px;margin:0">${pressureDesc(n)}</p></div>`).join('')}</div></section>`;}
 function libraryView(){
   const domains=['ALL',...new Set(techniques.map(t=>t.domain))];
-  return `<section class="hero"><span class="eyebrow">TECHNICAL CORPUS</span><h1>KNOW WHAT<br>YOU'RE RECALLING.</h1><p>Functional organization first, provenance second. Technique dossiers now separate canonical source, RENSA variant, prerequisites, checkpoints, failure modes, limitations and spoken cue.</p></section>
+  return `<section class="hero"><span class="eyebrow">TECHNICAL CORPUS</span><h1>KNOW WHAT<br>YOU'RE RECALLING.</h1><p>Functional organization first, provenance preserved. Technique dossiers remain motor-reference records; course-derived state concepts now live separately in State Engine so conceptual provenance is not laundered into technique instruction.</p></section>
   <input id="library-search" class="search" type="search" placeholder="Search technique, provenance, alias, domain…" aria-label="Search technique library" />
   <div class="filter-row" style="margin-top:10px">${domains.map((d,i)=>`<button class="filter ${i===0?'active':''}" data-filter="${esc(d)}">${esc(d)}</button>`).join('')}</div><div id="library-cards" class="library-grid">${libraryCards('ALL','')}</div>
   <section class="section"><details class="accordion"><summary>TERMINOLOGY // ${glossary.length} ENTRIES</summary><div class="accordion-body">${glossary.map(g=>`<p><strong>${esc(g.term)}</strong> <span class="tag">${esc(g.domain)}</span><br>${esc(g.definition)}</p>`).join('')}</div></details>
@@ -411,12 +443,75 @@ function showTechnique(id){
   $('#tech-close').onclick=()=>$('#technique-dialog').close();$('#tech-hold')?.addEventListener('click',()=>toggleTechniqueHold(id));$('#save-tech-note').onclick=()=>saveTechniqueNote(id);if(!$('#technique-dialog').open)$('#technique-dialog').showModal();
 }
 function listSection(title,items){return items?.length?`<div class="detail-section"><h3>${title}</h3><ul>${items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:'';}
-function chainsView(){return `<section class="hero"><span class="eyebrow">TRANSITION GRAPH</span><h1>LINK,<br>DON'T RECITE.</h1><p>Every node resolves to a real library technique. The conductor presents nodes sequentially with temporal separation rather than reading the whole chain as one phrase.</p></section><div class="ledger-list">${chains.map((c,i)=>`<div class="card chain-card"><div class="chain-index">${String(i+1).padStart(2,'0')}</div><div><span class="eyebrow">${esc(c.domain)}</span><h3>${esc(c.name)}</h3><p class="muted">${esc(c.note)}</p><div class="chain-steps">${c.nodes.map((id,j)=>`${j?'<span class="arrow">→</span>':''}<button class="chain-step link-step" data-tech="${id}">${esc(techniqueById(id)?.name||id)}</button>`).join('')}</div></div></div>`).join('')}</div>`;}
+function problemCompatibleWithEnvironment(p){
+  if(!p||p.entryEligible===false||p.representation==='REFERENCE'||p.representation==='INSTRUCTOR')return false;
+  const req=p.requirements||{};
+  if(req.partner===true&&!environmentProfile.partner)return false;if(req.impact===true&&!environmentProfile.impact)return false;if(req.functionalWeapons===true&&!environmentProfile.functionalWeapons)return false;if(req.liveFire===true&&!environmentProfile.liveFire)return false;
+  return true;
+}
+function compileProblem(id=null,depth=0){
+  const starters=problemCards.filter(problemCompatibleWithEnvironment);
+  let card=id?problemById(id):null;
+  if(card&&['REFERENCE','INSTRUCTOR'].includes(card.representation))card=null;else if(card&&!problemCompatibleWithEnvironment(card)&&card.entryEligible!==false)card=null;
+  if(!card){const candidates=starters.filter(p=>p.id!==stateLab?.problemId);card=random(candidates.length?candidates:starters);}
+  if(!card)card=starters[0]||problemCards[0];
+  const stateVector={...card.state};
+  for(const [axis,values] of Object.entries(card.variants||{})){const valid=(values||[]).filter(v=>stateAxes[axis]?.values?.[v]);if(valid.length)stateVector[axis]=random(valid);}
+  return {id:uid('problem-run'),problemId:card.id,stateVector,depth,answered:null,revealed:false,createdAt:nowIso()};
+}
+function ensureStateLab(){if(!stateLab||!problemById(stateLab.problemId))stateLab=compileProblem();return stateLab;}
+function stateDecisionStats(){const rows=state.stateDecisions||[];return {total:rows.length,compatible:rows.filter(x=>x.result==='compatible').length,outside:rows.filter(x=>x.result==='outside-model').length,unsure:rows.filter(x=>x.result==='unsure').length};}
+function deleteStateDecision(id){if(!confirm('Delete this State Lab decision?'))return;state.stateDecisions=state.stateDecisions.filter(x=>x.id!==id);saveState();render();}
+function stateDecisionHistory(){const rows=[...(state.stateDecisions||[])].sort((a,b)=>Date.parse(b.date)-Date.parse(a.date)).slice(0,8);if(!rows.length)return '';return `<section class="section"><div class="section-head"><div><span class="eyebrow">DECISION LEDGER</span><h2>Recent State Lab evidence</h2></div><p>Historical model snapshots are preserved.</p></div><div class="ledger-list">${rows.map(r=>{const p=problemById(r.problemId),f=responseFamilyById(r.selectedFamily),d=new Date(r.date);return `<div class="card state-history"><div><span class="eyebrow">${esc(String(r.result).toUpperCase())} // ${esc(r.modelVersion||'—')}</span><h3>${esc(r.problemTitleSnapshot||p?.title||r.problemId)}</h3><p class="muted">${esc(axisLabel('objective',r.objective))} · ${esc(r.selectedFamilyLabelSnapshot||f?.label||'UNSURE')} · ${d.toLocaleString()}</p></div><button class="mini-btn" data-delete-state="${esc(r.id)}">DELETE</button></div>`;}).join('')}</div></section>`;}
+
+function recordStateDecision(familyId,result){
+  const lab=ensureStateLab(),card=problemById(lab.problemId);if(!card||lab.answered)return;
+  const family=familyId?responseFamilyById(familyId):null;const row={id:uid('state'),date:nowIso(),problemId:card.id,problemTitleSnapshot:card.title,stateVector:{...lab.stateVector},selectedFamily:familyId||null,selectedFamilyLabelSnapshot:family?.label||null,result,objective:lab.stateVector.objective,depth:lab.depth,provenanceClass:card.provenance?.sourceClass||null,modelVersion:APP_VERSION,allowedFamiliesSnapshot:card.allowedFamilies.slice()};
+  state.stateDecisions=[...(state.stateDecisions||[]),row].slice(-MAX_STATE_DECISIONS);lab.answered=row;lab.revealed=true;saveState();render();
+}
+function answerStateProblem(familyId,resultOverride=null){
+  const lab=ensureStateLab(),card=problemById(lab.problemId);if(!card||lab.answered)return;
+  if(resultOverride==='unsure')return recordStateDecision(null,'unsure');
+  const family=responseFamilyById(familyId);if(!family)return;
+  const result=card.allowedFamilies.includes(familyId)?'compatible':'outside-model';recordStateDecision(familyId,result);
+}
+function continueStateProblem(){
+  const lab=ensureStateLab(),card=problemById(lab.problemId);if(!lab.answered)return;
+  const next=(card.continuations||[]).map(problemById).filter(Boolean);stateLab=next.length?compileProblem(random(next).id,lab.depth+1):compileProblem();render();
+}
+function stateVectorMarkup(lab){return Object.keys(stateAxes).map(axis=>`<div class="state-cell"><span>${esc(stateAxes[axis].label)}</span><strong>${esc(axisLabel(axis,lab.stateVector[axis]))}</strong></div>`).join('');}
+function familyButton(f,lab,card){
+  const answered=!!lab.answered,allowed=lab.revealed&&card.allowedFamilies.includes(f.id),selected=lab.answered?.selectedFamily===f.id;
+  return `<button class="state-family ${allowed?'model-allowed':''} ${selected?'selected':''}" data-state-family="${f.id}" ${answered?'disabled':''}><strong>${esc(f.label)}</strong><span>${esc(f.description)}</span></button>`;
+}
+function stateOutcomeMarkup(lab,card){
+  if(!lab.answered)return '';
+  const row=lab.answered,selected=responseFamilyById(row.selectedFamily),compatible=row.result==='compatible';
+  const title=row.result==='unsure'?'MODEL REVEALED':compatible?'MODEL-COMPATIBLE':'OUTSIDE CURRENT MODEL';
+  const body=row.result==='unsure'?'No performance claim was recorded. The compatible-family set is shown for study.':compatible?`${selected?.label||'The selected family'} is represented as compatible with this abstract state.`:`${selected?.label||'The selected family'} is not represented as compatible with this particular v4 Problem Card. That is a model result, not a universal tactical or legal judgment.`;
+  return `<div class="state-outcome ${compatible?'ok':row.result==='outside-model'?'warn':''}"><span class="eyebrow">${title}</span><p>${esc(body)}</p><div class="state-allowed"><span>MODEL SET</span>${card.allowedFamilies.map(id=>{const f=responseFamilyById(id);return `<div class="state-family-map"><strong>${esc(f?.label||id)}</strong>${(f?.techniqueIds||[]).length?`<div>${f.techniqueIds.filter(techniqueById).map(tid=>`<button class="mini-btn link-step" data-tech="${tid}">${esc(techniqueById(tid).spokenCue)}</button>`).join('')}</div>`:'<small>COGNITIVE CHANNEL</small>'}</div>`;}).join('')}</div></div>`;
+}
+function problemCardMarkup(){
+  const lab=ensureStateLab(),card=problemById(lab.problemId),prov=provenanceClasses[card.provenance?.sourceClass]||provenanceClasses.RENSA_ABSTRACTION,obj=objectiveById(lab.stateVector.objective),canContinue=!!lab.answered&&(card.continuations||[]).length>0;
+  return `<div class="card state-problem"><div class="state-problem-head"><div><span class="eyebrow">PROBLEM CARD // ${esc(card.representation)}</span><h2>${esc(card.title)}</h2></div><span class="tag">DEPTH ${lab.depth}</span></div><p class="state-prompt">${esc(card.prompt)}</p><div class="state-grid">${stateVectorMarkup(lab)}</div><div class="objective-box"><span>${esc(obj?.label||lab.stateVector.objective)}</span><p>${esc(obj?.description||'')}</p></div><div class="provenance-line"><strong>${esc(prov.label)}</strong><span>${esc(String(card.provenance?.confidence||'—').toUpperCase())} CONFIDENCE</span></div><p class="small-copy">${esc(card.provenance?.note||prov.description)}</p><div class="callout state-safety">${esc(card.safety)}</div><div class="section-head state-response-head"><div><span class="eyebrow">DECISION</span><h2>Select a response family</h2></div><p>One state may admit several valid families.</p></div><div class="state-family-grid">${responseFamilies.map(f=>familyButton(f,lab,card)).join('')}</div>${!lab.answered?`<div class="button-row state-actions"><button id="state-unsure" class="btn secondary">UNSURE // REVEAL MODEL</button><button id="state-new" class="btn secondary">NEW PROBLEM</button></div>`:`${stateOutcomeMarkup(lab,card)}<div class="button-row state-actions">${canContinue?'<button id="state-continue" class="btn primary">CONTINUE STATE</button>':''}<button id="state-new" class="btn secondary">NEW PROBLEM</button></div>`}</div>`;
+}
+function stateView(){
+  const stats=stateDecisionStats();
+  const chainMarkup=chains.map((c,i)=>`<div class="card chain-card"><div class="chain-index">${String(i+1).padStart(2,'0')}</div><div><span class="eyebrow">${esc(c.domain)}</span><h3>${esc(c.name)}</h3><p class="muted">${esc(c.note)}</p><div class="chain-steps">${c.nodes.map((id,j)=>`${j?'<span class="arrow">→</span>':''}<button class="chain-step link-step" data-tech="${id}">${esc(techniqueById(id)?.name||id)}</button>`).join('')}</div></div></div>`).join('');
+  return `<section class="hero"><span class="eyebrow">STATE ENGINE 1</span><h1>STATE BEFORE<br>TECHNIQUE.</h1><p>v4 compiles a problem from independent state variables, assigns an objective, and asks you to select a compatible response family. It does not require one predetermined move and it does not generate operational weapon procedure.</p></section>
+  <div class="meta-strip"><div><span>DECISIONS</span><strong>${stats.total}</strong></div><div><span>MODEL-COMPATIBLE</span><strong>${stats.compatible}</strong></div><div><span>OUTSIDE MODEL</span><strong>${stats.outside}</strong></div><div><span>UNSURE</span><strong>${stats.unsure}</strong></div></div>${stats.total?'<div class="button-row state-clear-row"><button id="clear-state-evidence" class="btn danger">CLEAR STATE DECISIONS</button></div>':''}
+  <div class="callout"><strong>MODEL BOUNDARY:</strong> State Lab is cognitive/empty-hand rehearsal. “Compatible” means compatible with RENSA v4's deliberately narrow abstract model—not legal advice, a force recommendation, or proof of real-world readiness.</div>
+  <section class="section">${problemCardMarkup()}</section>${stateDecisionHistory()}
+  <section class="section"><div class="section-head"><div><span class="eyebrow">OBJECTIVE HIERARCHY</span><h2>Avoid → Stabilize → Resolve</h2></div><p>Course-derived synthesis, explicitly provenance-tagged.</p></div><div class="grid">${objectiveHierarchy.map(o=>`<div class="card"><span class="eyebrow">0${o.order}</span><h3>${esc(o.label)}</h3><p class="muted">${esc(o.description)}</p></div>`).join('')}</div></section>
+  <section class="section"><div class="section-head"><div><span class="eyebrow">INSTRUCTOR BOUNDARY</span><h2>Indexed, never autonomously taught</h2></div></div><div class="grid">${instructorReferenceDomains.map(x=>`<div class="card instructor-card"><span class="eyebrow">${esc(x.representation)}</span><h3>${esc(x.name)}</h3><p class="muted">${esc(x.description)}</p></div>`).join('')}</div></section>
+  <section class="section"><div class="section-head"><div><span class="eyebrow">TRANSITION GRAPH</span><h2>Existing motor chains</h2></div><p>Still technique-ID based; State Engine sits above this graph.</p></div><div class="ledger-list">${chainMarkup}</div></section>`;
+}
+function chainsView(){return stateView();}
 function ledgerView(){
   const logs=state.logs;
-  return `<section class="hero"><span class="eyebrow">EVIDENCE VAULT</span><h1>EXPOSURE ≠<br>PERFORMANCE.</h1><p>v3 preserves that distinction while allowing truthful evidence from partial sessions to survive. Rated misses and hesitations from maintenance, chains and pressure can now influence future focus selection.</p></section>
+  return `<section class="hero"><span class="eyebrow">EVIDENCE VAULT</span><h1>EXPOSURE ≠<br>PERFORMANCE.</h1><p>v4 preserves that distinction while allowing truthful evidence from partial sessions to survive. Rated misses and hesitations from maintenance, chains and pressure can now influence future focus selection.</p></section>
   <section class="section"><div class="section-head"><div><span class="eyebrow">FOCUS POOL</span><h2>Adaptive evidence</h2></div><p>${state.evidence.length} events</p></div><div class="library-grid">${focusPool.map(id=>focusEvidenceCard(id)).join('')}</div></section>
-  <section class="section"><div class="section-head"><div><span class="eyebrow">HISTORY</span><h2>Session ledger</h2></div>${logs.length?'<button id="clear-ledger" class="btn danger">CLEAR V3 LEDGER</button>':''}</div><div class="ledger-list">${logs.length?logs.map(logEntry).join(''):'<div class="empty">No v3 session records yet. Migrated v1/v2 entries will appear here if present.</div>'}</div></section>`;
+  <section class="section"><div class="section-head"><div><span class="eyebrow">HISTORY</span><h2>Session ledger</h2></div>${logs.length?'<button id="clear-ledger" class="btn danger">CLEAR V4 LEDGER</button>':''}</div><div class="ledger-list">${logs.length?logs.map(logEntry).join(''):'<div class="empty">No v4 session records yet. Migrated v1/v2 entries will appear here if present.</div>'}</div></section>`;
 }
 function focusEvidenceCard(id){
   const t=techniqueById(id),exposure=state.evidence.filter(e=>e.techniqueId===id&&e.exposureCredit).sort((a,b)=>Date.parse(b.date)-Date.parse(a.date)),rated=state.evidence.filter(e=>e.techniqueId===id&&e.adaptiveCredit&&RATED_RESULTS.has(e.result)).sort((a,b)=>Date.parse(b.date)-Date.parse(a.date))[0];
@@ -734,5 +829,5 @@ function showUpdate(worker){pendingWorker=worker;const b=$('#update-ready');if(b
 function applyPendingUpdate(){if(activeSession)return toast('Finish or discard the active session before updating');if(!pendingWorker)return toast('No pending update');pendingWorker.postMessage({type:'SKIP_WAITING'});}
 
 render();
-if(state.migratedFrom){const source=state.migratedFrom;setTimeout(()=>toast(`${source} data migrated into v3; previous storage preserved`),500);state.migratedFrom=null;saveState();}
+if(state.migratedFrom){const source=state.migratedFrom;setTimeout(()=>toast(`${source} data migrated into v4; previous storage preserved`),500);state.migratedFrom=null;saveState();}
 initServiceWorker();

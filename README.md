@@ -1,101 +1,48 @@
-# RENSA v2.0.0 — Adaptive Combatives Recall
+# RENSA v3.0.0
 
-RENSA is a static, local-first Progressive Web App for compact solo maintenance and pressure-retrieval of an **existing** hybrid combatives skill set. It is not a substitute for partner drilling, live resistance, coaching, sparring, or discipline-specific mastery.
+**Adaptive Combatives Recall — pre-field hardened release**
 
-## Frozen operating profile
+RENSA is a local-first GitHub Pages PWA for compact solo recall and maintenance of a curated hybrid combatives vocabulary. It is built around a hard default environment profile: approximately **72 × 24 inches**, apartment-quiet, solo, zero-impact, no partner dependency, optional resistance band.
 
-- **Space:** 72 × 24 × 1 inch exercise/yoga mat lane
-- **Partner:** none
-- **Impact:** zero
-- **Noise:** apartment / quiet
-- **Equipment:** body only by default; resistance-band overlay optional
-- **Primary weekly session:** 50 minutes
-- **Compact session:** 20 minutes
-- **QA preview:** 5 minutes and **never receives training credit**
-- **Deployment:** GitHub Pages; no build step or external runtime dependency
-- **Storage:** browser `localStorage`; JSON export/import available
+RENSA is not a substitute for live coaching, resistance, sparring, randori, partner sensitivity work, or safe supervised submission/throw practice. Its job is narrower: preserve and retrieve already-known movement patterns, expose them under controlled information pressure, and record honest evidence about recall without pretending solo rehearsal equals live competence.
 
-## What changed in v2
+## v3 field baseline
 
-v2 replaces the v1 prototype training engine with an evidence-aware implementation:
+v3.0.0 hardens v2 for routine weekly use. Major changes include:
 
-- per-technique exposure events: `clean / hesitant / miss / skipped / unrated`;
-- an explainable focus scheduler using rated focus evidence, recent coverage, recency, side exposure, and cooldown;
-- timestamp/delta-based clocks rather than assuming one timer callback equals one second;
-- automatic pause on visibility loss or abnormal timer gaps so suspended time is never credited;
-- persistent paused-session recovery after reload/process interruption;
-- per-block `completed / partial / skipped` accounting;
-- explicit protocol-event logging for manual NEXT/BACK, pause/resume and manual pressure cues;
-- a separately authored 20-minute COMPACT plan;
-- stateful interruption and sequential chain conduction;
-- laterality-aware cues rather than indiscriminate LEFT/RIGHT prefixes;
-- a P8 noise gate in which valid and irrelevant stimuli use the same presentation channel;
-- no fabricated pressure score: pressure results default to `UNRATED`;
-- stance setting and stance-relative striking nomenclature;
-- distinct Wrestling Double-Leg and Judo Morote-gari entries;
-- richer technique dossiers with canonical source, RENSA variant, prerequisites, checkpoints, failure modes and limitations;
-- validated schema-v2 import/export and safe one-time migration from the v1 localStorage key;
-- audio/haptic calibration controls and visible wake-lock status;
-- improved focus states, type sizing and semantic navigation state.
+- three-way evidence semantics: **exposure credit**, **adaptive credit**, and **session completion** are separate;
+- partial sessions can preserve truthful rated evidence without being mislabeled completed;
+- balanced LEFT/RIGHT shuffle bags and no-immediate-repeat technique bags;
+- coverage-oriented maintenance and chain selection;
+- P6 BLIND and P8 noise-gate side-channel suppression;
+- terminal-aware chain scheduling so recovery nodes are not truncated;
+- safe service-worker update lifecycle: updates wait for explicit foreground activation;
+- v3 → v2 → v1 storage fallback and v2 active-checkpoint recovery;
+- per-technique **HOLD / RETURN** control and private local notes;
+- stricter import sanitation, including rejection of evidence with invalid timestamps.
 
-## Representation integrity
+## Frozen session durations
 
-Every technical entry carries one of five representation classes:
+- **FULL:** 50:00
+- **COMPACT:** 20:00
+- **QA PREVIEW:** 05:00, no training credit
 
-- `FULL` — the relevant solo motor task is meaningfully performable in the configured environment.
-- `SHADOW` — non-contact motor representation; resistance, timing and opponent interaction are absent.
-- `PROXY` — useful surrogate missing a defining component.
-- `REFERENCE` — knowledge or gross positional recall only.
-- `DISABLED` — excluded from generated sessions under the current environment.
+## Deployment
 
-RENSA never converts repetition counts into a claim of mastery. Hubud solo work remains a proxy because tactile sensitivity is partner-dependent. Throw entries remain shadow representations. Standing choke entries are hand-position recall only; the application does not prescribe solo neck compression.
+The contents of the release ZIP belong at the **repository root**. Do not place them inside a version subfolder.
 
-## Deploy / upgrade on GitHub Pages
+For an existing v2 installation, see `UPGRADE_FROM_V2.md`.
 
-For an existing RENSA v1 repository, follow `UPGRADE_FROM_V1.md`.
+## Data
 
-For a fresh repository:
+v3 stores its primary state under a new v3 key and preserves predecessor keys for rollback/migration. Exporting data from SET before an upgrade remains recommended.
 
-1. Extract the ZIP into the repository root so `index.html` is at root.
-2. Commit and push all files.
-3. GitHub → **Settings → Pages → Build and deployment → Deploy from a branch**.
-4. Select the branch (normally `main`) and `/ (root)`.
-5. Open the published URL while online once so the PWA shell can cache.
-6. On iPhone/iPad, Safari → Share → **Add to Home Screen** if desired.
+## Included release-control documents
 
-All application asset paths are relative and remain compatible with a project path such as `/RENSA/`.
-
-## v1 data migration
-
-v2 writes to `rensa-state-v2`. On first v2 launch, if that key does not exist and `rensa-state-v1` does, RENSA validates and migrates the v1 settings/history into v2. The original v1 key is intentionally **left untouched** as a rollback source.
-
-Migrated v1 session summaries are marked legacy. They are retained in the ledger but are not fabricated into technique-level evidence and therefore do not masquerade as adaptive training data.
-
-## Active-session recovery
-
-While a weekly or pressure session is active, RENSA stores a paused checkpoint separately in `rensa-active-v2`. Reloaded/restored sessions never credit the time spent closed or backgrounded. A checkpoint older than 12 hours is discarded as stale.
-
-## Audio on iOS
-
-Start a session or use **SET → AUDIO CHECK** from a direct user gesture. Speech uses the browser Speech Synthesis API; tones use Web Audio; haptics use the vibration API where available. Screen Wake Lock support varies by browser/device, so v2 surfaces the current wake-lock state rather than silently assuming it succeeded.
-
-## Files
-
-- `index.html` — application shell and dialogs
-- `css/styles.css` — AMOLED/severe responsive UI
-- `js/data.js` — technique corpus, transition graph, sessions, terminology and curriculum
-- `js/app.js` — state schema, evidence/scheduling logic, conductor, pressure engine, timing, persistence and ledger
-- `sw.js` — offline cache/network strategy
-- `manifest.webmanifest` — installable PWA metadata
-- `assets/` — application icons
-- `SPEC.md` — frozen v2 system specification
-- `RELEASE_NOTES.md` — v2 release record
-- `QA_REPORT.md` — freeze verification record
-- `UPGRADE_FROM_V1.md` — drop-in replacement instructions
-- `VERSION` — frozen release marker
-- `.nojekyll` — explicit static Pages behavior
-- `CHECKSUMS.sha256` — per-file integrity hashes
-
-## Scope and safety
-
-RENSA is a personal maintenance/retrieval tool for movement vocabulary the practitioner already knows. Solo rehearsal does not reproduce opponent timing, resistance, collision, tactile sensitivity, live tactical decision-making, or actual stress physiology. Stop on pain, keep movement controlled, stay inside the configured floor space, do not use furniture or household objects as improvised bodies, and do not apply strangulation pressure during solo control-position recall.
+- `V2_HOSTILE_AUDIT.md` — pre-field audit that drove v3
+- `RELEASE_NOTES.md` — exact v3 changes
+- `SPEC.md` — frozen architecture and evidence semantics
+- `QA_REPORT.md` — pre-release test record
+- `UPGRADE_FROM_V2.md` — live-repository replacement procedure
+- `FIELD_TEST_PROTOCOL.md` — first weekly-use observation protocol
+- `CHECKSUMS.sha256` — per-file integrity manifest

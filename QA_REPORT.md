@@ -1,213 +1,82 @@
-# RENSA v2.0.0 — Freeze QA Report
-
-**Release status:** FROZEN CORRECTIVE ENGINE  
-**Freeze date:** 2026-09-30  
-**Target:** static GitHub Pages / mobile PWA
-
-## Static/source validation — PASS
+# RENSA v3.0.0 — Frozen QA Report
 
-- `js/app.js`, `js/data.js`, `sw.js`: JavaScript syntax PASS.
-- `manifest.webmanifest`: JSON parse PASS.
-- Application version: `2.0.0`.
-- State schema: `2`.
-- Technique/movement corpus: **24 entries**, all IDs unique.
-- All representation values resolve to defined representation classes.
-- All laterality values are one of `none / bilateral / stance`.
-- Every prerequisite resolves to a real technique ID.
-- Transition graph: **8 chains / 18 typed directed edges**.
-- Every graph node/edge resolves and aligns to a real technique ID.
-- Active focus pool: **7** retained takedown/shot entries.
-- Wrestling Double-Leg and Judo Morote-gari are distinct IDs; Morote-gari is excluded from the active focus pool.
-- Glossary: **18 entries**.
-- Dependency curriculum: **9 stages**; all technique references resolve.
-- Session budgets:
-  - FULL: **3,000 seconds / 50:00**
-  - COMPACT: **1,200 seconds / 20:00**
-  - QA PREVIEW: **300 seconds / 5:00**
-- Every session `techniqueId` resolves to the corpus.
-- Every dynamic block type resolves to a known conductor implementation.
-- Service-worker cache version is `rensa-v2.0.0`.
-- Every service-worker core asset exists in the release tree.
+## Result
 
-## Static HTTP asset smoke test — PASS
+**PASS — pre-field release candidate accepted for packaging.**
 
-A local static server returned HTTP 200 for:
+## Static/data integrity
 
-- `/`
-- `index.html`
-- `css/styles.css`
-- `js/app.js`
-- `js/data.js`
-- `manifest.webmanifest`
-- `sw.js`
-- `assets/icon.svg`
-- `assets/icon-192.png`
-- `assets/icon-512.png`
+Validated from the final source tree:
 
-The served `js/data.js` was verified to report `APP_VERSION = '2.0.0'`.
+- application version: 3.0.0;
+- schema version: 3;
+- 24 unique technique/movement IDs;
+- 8 chain IDs;
+- 18 typed chain edges;
+- 18 glossary entries;
+- 9 curriculum stages;
+- all chain node references resolve to corpus IDs;
+- all prerequisite/reference relationships checked by static QA;
+- FULL session = exactly 3000 seconds;
+- COMPACT session = exactly 1200 seconds;
+- QA PREVIEW = exactly 300 seconds;
+- service-worker core asset list resolves to shipped runtime assets.
 
-## Chromium runtime QA — PASS
+## Runtime engine QA
 
-The managed Chromium policy in this environment blocks direct navigation to localhost with `ERR_BLOCKED_BY_ADMINISTRATOR`. To obtain a real browser runtime test rather than falling back to source inspection alone, the exact release HTML, CSS, `data.js` and `app.js` were assembled into a **temporary, non-shipped single-file QA harness**. Module exports/imports were inlined without changing application logic, and a test-only in-memory `localStorage` shim was injected. The harness was executed in headless Chromium at a 390 × 844 mobile viewport.
+Deterministic runtime tests passed:
 
-No page errors or console errors/warnings were produced in the main runtime suite.
+- balanced bilateral side bag produced equal LEFT/RIGHT counts across a controlled run;
+- constrained draw bag avoided pathological immediate-repeat behavior;
+- adaptive focus selection promoted intentionally seeded weak evidence (`miss` / `hesitant`) over clean comparators;
+- P8 generated a mixture of valid and noise cues without presentation-channel classification metadata;
+- v3 evidence sanitation rejects invalid timestamps rather than assigning current recency;
+- state fallback/migration paths preserve predecessor storage rather than overwriting it;
+- compatible saved sessions reopen paused with credited time preserved.
 
-### Navigation / corpus
+## Browser-interaction QA
 
-- TODAY initial render: PASS.
-- `aria-current="page"` follows navigation: PASS.
-- LIBRARY renders **24** technique cards: PASS.
-- CHAINS renders **8** chains and **26** linked node buttons: PASS.
-- Morote-gari detail explicitly presents it as distinct from the Wrestling Double-Leg: PASS.
+An exact-source Chromium harness was used to exercise the final HTML/CSS/ES-module application where direct local HTTP navigation was blocked by the managed environment.
 
-### COMPACT plan integrity
+Verified:
 
-TODAY rendered COMPACT as exactly **20:00** with the actual selected plan:
+- TODAY renders;
+- PRESSURE renders;
+- LIBRARY renders 24 cards;
+- CHAINS renders all 8 chains;
+- LEDGER renders;
+- technique dossier opens;
+- HOLD / RETURN interaction works;
+- QA PREVIEW starts and completes;
+- QA PREVIEW completion reports **NO CREDIT**;
+- QA PREVIEW leaves session count, ledger, and evidence untouched;
+- P6 visual state does not reveal current cue identity through the main cue/assessment/band UI;
+- P8 suppresses per-cue assessment controls and does not label irrelevant cues as noise;
+- no browser errors or console warnings were observed in the final interaction pass.
 
-- WAKE 02:00
-- BASE 01:00
-- WRESTLE 01:30
-- STRIKE 04:00
-- FLOW 02:00
-- TAKEDOWN 04:00
-- CONTROL 01:30
-- CHAIN 02:00
-- PRESSURE 01:30
-- DOWN 00:30
+## Timing / chain hardening checks
 
-This confirms v1's `find(first phase block) and stretch it` failure is absent.
+- P4 chain fit uses complete sequence duration, including terminal node timing;
+- ordinary chain conductor uses the same no-truncation rule;
+- a chain is not started when the remaining window cannot contain the full sequence;
+- P3 substitute selection excludes the initiating concrete technique when alternatives exist.
 
-### QA preview contamination test
+## Service-worker lifecycle check
 
-The browser started the 5-minute QA PREVIEW and manually advanced through all eight blocks.
+Confirmed from final `sw.js`:
 
-Result:
+- install caches core assets;
+- install does **not** call `skipWaiting()`;
+- `SKIP_WAITING` occurs only in response to an explicit foreground message;
+- activation removes obsolete RENSA caches and claims clients;
+- GET requests use network-first with cache fallback and navigation fallback to `index.html`.
 
-- completion screen explicitly displayed **NO CREDIT**;
-- v2 logs remained `0`;
-- `sessionCount` remained `0`.
+## Known QA-environment limitation
 
-PASS.
+The managed Chromium environment blocks direct navigation to local HTTP origins. To avoid treating this as a pass-by-assumption, browser QA used a controlled origin harness that served the exact final multi-file sources into Chromium. Static and deterministic runtime tests were also executed independently.
 
-### Adversarial skip-to-complete test
+The definitive final acceptance environment remains the deployed GitHub Pages origin.
 
-The browser started FULL and immediately pressed NEXT through all **25** blocks.
+## Field-release caveat
 
-Result:
-
-- completion state was **PARTIAL**, not completed;
-- all 25 unperformed blocks were retained as `skipped`;
-- both focus-rating fields were disabled because no meaningful focus exposure occurred;
-- saved ledger status was `partial`;
-- `sessionCount` remained `0`;
-- number of training-credit evidence events remained `0`.
-
-PASS. This directly closes the v1 defect where reaching the end of the array could manufacture a completed session.
-
-### Pressure P8 validity-leak test
-
-P8 was launched and allowed to emit cues.
-
-The active pressure UI contained neither `VALID CUE` nor `NOISE — IGNORE`. v2 uses one common tone/haptic/display path for both valid and irrelevant P8 stimuli.
-
-PASS.
-
-### Pressure-score integrity test
-
-A pressure session was ended and saved partial without selecting a performance outcome.
-
-Result:
-
-- default outcome: `unrated`;
-- stored `pressureOutcome`: `unrated`;
-- stored legacy `recall`: `null`;
-- no synthetic 3/5 value was written.
-
-PASS.
-
-### v1 → v2 migration test
-
-A test browser context was seeded with a representative `rensa-state-v1` record and no v2 state.
-
-Result:
-
-- `rensa-state-v2` was created;
-- v1 ledger record was preserved as `legacy`;
-- historical session count was preserved;
-- settings migrated;
-- the original `rensa-state-v1` key remained present and unchanged.
-
-PASS.
-
-### Adaptive scheduler test
-
-The browser was seeded with credited focus evidence in which Tai-otoshi carried a recent `miss` and De-ashi-harai a recent `hesitant` assessment, while comparison techniques carried clean evidence.
-
-Result:
-
-- Focus A: **Tai-otoshi**;
-- Focus B: **De-ashi-harai**;
-- displayed reasons included `recent miss` and `recent hesitation`.
-
-PASS. This verifies that v2 focus selection is evidence-driven rather than the v1 fixed rotation once sufficient v2 evidence exists.
-
-### Active-session recovery test
-
-A valid paused QA session checkpoint was injected with 15 seconds already credited in its current 30-second block.
-
-Result:
-
-- TODAY displayed a RESUME card;
-- RESUME reopened the session dialog;
-- state restored **paused**;
-- button read `RESUME`;
-- timer displayed **00:15** rather than crediting closed time.
-
-PASS.
-
-### Temporal conductor tests
-
-**Self-interruption:** the FULL striking block `Jab — Cross — Lead Hook — Cross` was entered and allowed to conduct. The first dynamic cue was the combination itself; the subsequent interrupt resolved to the intended recovery path (`Compact fighting base`) rather than an unrelated random technique. PASS.
-
-**P4 chain sequencing:** P4 produced `Compact cover / shell` as cue 1 and later `Compact clinch acquisition shadow` as cue 2. The chain was not presented as one joined `A then B` string. PASS.
-
-## Visual mobile inspection — PASS WITH SMALL CORRECTION APPLIED
-
-Chromium screenshots at 390 × 844 were inspected for TODAY and the active session conductor.
-
-The first visual pass revealed that the `TAKEDOWN` phase label could collide with its description in the narrow phase grid. The mobile phase-name column was enlarged before freeze. Evidence buttons were also increased to a larger touch target.
-
-The active-session layout preserves clear hierarchy at mobile size:
-
-- phase/progress at top;
-- high-visibility movement label;
-- instruction;
-- live cue;
-- optional evidence marks;
-- large timer;
-- persistent BACK / PAUSE / NEXT controls.
-
-## Known platform limitations
-
-- Browser Speech Synthesis voices/pronunciation differ by OS/browser. v2 mitigates this with per-technique `spokenCue` aliases but does not ship recorded audio.
-- Screen Wake Lock can be unsupported or revoked by the platform. v2 detects and surfaces this instead of treating acquisition as guaranteed.
-- Mobile operating systems can suspend PWAs. v2 therefore auto-pauses on visibility loss/timer gaps and restores active sessions paused rather than pretending suspended time was training.
-- Direct localhost navigation in the managed build Chromium was blocked by administrator policy; browser logic was therefore exercised through the temporary inline harness described above, while the real multi-file release was independently served and asset-checked over local HTTP.
-
-## Freeze conclusion
-
-**PASS — RENSA v2.0.0 is approved for frozen GitHub Pages release.**
-
-The v2 freeze specifically validates the corrective properties absent from v1: honest time accounting, honest evidence, adaptive focus behavior, non-contaminating QA, resumability, sequential transition cueing and a non-leaking P8 noise gate.
-
-
-## Final hardening regression checks — PASS
-
-After the main runtime suite, four edge cases were tightened and revalidated at source/invariant level before hashing the frozen package:
-
-- weekly completion requires every block to reach its actual endpoint; a skipped or partial block forces a `partial` ledger result and prevents adaptive credit;
-- P3 `CHANGE` rejects an identical replacement technique when a concrete technique cue is available;
-- P4 refuses to begin a chain unless its maximum defined edge-delay window can complete before the current weekly/standalone pressure window ends, preventing the final recovery node from being cut off;
-- adaptive cooldown resolves against the most recent completed weekly record, not an unrelated completed pressure record.
-
-JavaScript syntax, session budgets, graph references, technique references and all service-worker core-asset HTTP checks were rerun after these edits and passed.
+This QA establishes software and protocol integrity; it does not establish the real-world value of the training design. v3.0.0 is specifically intended to begin manual weekly field testing. The observation protocol is in `FIELD_TEST_PROTOCOL.md`.

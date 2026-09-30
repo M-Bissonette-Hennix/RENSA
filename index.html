@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="RENSA" />
+  <meta name="description" content="RENSA — compact solo combatives recall and maintenance." />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+  <link rel="stylesheet" href="./css/styles.css" />
+  <title>RENSA // Adaptive Combatives Recall</title>
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <button class="brand" data-route="today" aria-label="RENSA home">
+        <span class="brand-mark">連鎖</span>
+        <span><strong>RENSA</strong><small>ADAPTIVE COMBATIVES RECALL</small></span>
+      </button>
+      <div class="topbar-actions">
+        <button id="audio-toggle" class="icon-btn" aria-label="Toggle audio cues" title="Audio cues">AUDIO</button>
+        <button id="settings-open" class="icon-btn" aria-label="Open settings">SET</button>
+      </div>
+    </header>
+
+    <main id="view" class="view" tabindex="-1"></main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button data-route="today" class="nav-btn active"><span>01</span>TODAY</button>
+      <button data-route="pressure" class="nav-btn"><span>02</span>PRESSURE</button>
+      <button data-route="library" class="nav-btn"><span>03</span>LIBRARY</button>
+      <button data-route="chains" class="nav-btn"><span>04</span>CHAINS</button>
+      <button data-route="ledger" class="nav-btn"><span>05</span>LEDGER</button>
+    </nav>
+  </div>
+
+  <dialog id="settings-dialog" class="sheet">
+    <form method="dialog" class="sheet-inner" id="settings-form">
+      <div class="sheet-head"><div><span class="eyebrow">SYSTEM</span><h2>Environment profile</h2></div><button value="cancel" class="icon-btn">CLOSE</button></div>
+      <p class="muted">The default profile is intentionally restrictive: solo, quiet, no-impact practice inside a 72 × 24 inch mat footprint.</p>
+      <label class="toggle-row"><span><strong>Resistance band overlay</strong><small>Show optional loaded-grip/entry variants where compatible.</small></span><input id="band-enabled" type="checkbox" /></label>
+      <label class="toggle-row"><span><strong>Spoken cues</strong><small>Technique names, sides, transitions and phase changes.</small></span><input id="speech-enabled" type="checkbox" /></label>
+      <label class="toggle-row"><span><strong>Transition tones</strong><small>Short Web Audio cues before spoken prompts.</small></span><input id="tones-enabled" type="checkbox" /></label>
+      <label class="field"><span>Pressure default</span><select id="pressure-level"><option value="1">P1 — Recall</option><option value="2">P2 — Side</option><option value="3">P3 — Interrupt</option><option value="4">P4 — Chain</option><option value="5">P5 — Compression</option><option value="6">P6 — Blind</option><option value="7">P7 — Category</option><option value="8">P8 — Noise gate</option></select></label>
+      <label class="field"><span>Weekly session</span><select id="session-mode"><option value="full">FULL — 50 min</option><option value="compact">COMPACT — 20 min</option><option value="preview">QA PREVIEW — 5 min</option></select></label>
+      <div class="constraint-grid">
+        <div><span>FOOTPRINT</span><strong>72 × 24 in</strong></div><div><span>PARTNER</span><strong>NONE</strong></div><div><span>IMPACT</span><strong>ZERO</strong></div><div><span>NOISE</span><strong>QUIET</strong></div>
+      </div>
+      <div class="sheet-actions"><button id="export-data" type="button" class="btn secondary">EXPORT DATA</button><label class="btn secondary file-btn">IMPORT DATA<input id="import-data" type="file" accept="application/json" hidden></label><button value="save" class="btn primary">SAVE</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="technique-dialog" class="sheet technique-sheet"><div id="technique-detail" class="sheet-inner"></div></dialog>
+  <dialog id="session-dialog" class="session-dialog"><div id="session-stage" class="session-stage"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

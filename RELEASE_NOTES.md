@@ -1,85 +1,107 @@
-# RENSA v3.0.0 — Release Notes
+# RENSA v4.0.0 — Release Notes
 
-**Release class:** Pre-field hardening / major state-schema release
+## Release purpose
 
-v3.0.0 is the release intended to begin routine weekly field use. It does not attempt a broad curriculum expansion; it corrects second-order defects found by hostile auditing of v2.0.0.
+v4.0.0 is the first state-driven RENSA release. It does **not** attempt to expand the operational technique catalog. Its purpose is to place a problem/decision layer above the existing motor-recall engine while preserving the field-hardened v3 conductor.
 
-## Evidence Engine 3
+## State Engine 1
 
-- Separates **exposure credit**, **adaptive credit**, and **session completion**.
-- Valid rated events from partial sessions may influence the scheduler when the event itself satisfies credit rules.
-- Unrated exposure remains exposure only; it never silently becomes positive performance evidence.
-- Invalid-dated evidence is rejected rather than repaired to the current time.
-- State import sorts/sanitizes logs and evidence and validates all technique references.
+New state axes:
 
-## Adaptive Scheduler 2
+1. Distance
+2. Entanglement
+3. Orientation
+4. Mobility
+5. Hand availability
+6. Information state
+7. Objective
 
-- Uses rated creditable evidence rather than whole-session labels alone.
-- Retains conservative cold-start behavior until enough rated evidence exists.
-- Considers recency, underexposure, recent misses/hesitation, side exposure imbalance, recent focus coverage, and cooldown.
-- Held techniques are removed from generated focus pools without mutating canonical data.
+New objective hierarchy:
 
-## Constrained Randomization
+**Avoid → Stabilize → Resolve**
 
-Independent random draws were replaced where they could produce misleading clustering.
+The hierarchy is encoded as course-derived synthesis rather than attributed as verbatim external doctrine.
 
-- bilateral sides use balanced shuffle bags;
-- pressure technique pools avoid immediate repeats;
-- maintenance covers eligible entries before repeating;
-- chains use coverage-oriented selection before reuse.
+## Problem Cards
 
-Randomness remains unpredictable but is bounded by training intent.
+v4 ships with 10 Problem Cards, including:
 
-## Pressure Engine 3
+- unknown-contact standoff;
+- one-hand-occupied contact;
+- boundary respected;
+- boundary still closing;
+- contact/entangled;
+- surface-constrained contact;
+- mobility restored / exit available;
+- exit opens before entanglement;
+- continuation check / anti-termination-bias;
+- grounded entanglement as reference only.
 
-- **P6 BLIND:** cue identity is not leaked by assessment controls or band overlays.
-- **P8 NOISE:** valid/noise status is not leaked through tone, haptics, flash style, label, typography, or per-cue assessment affordances.
-- P4 chain timing is terminal-node aware; a chain is not started unless the entire node sequence can finish inside the available window.
-- P3 substitution continues to exclude the initiating technique.
+Only environment-compatible, non-reference cards can be selected as random starters. Continuation-only cards may be entered only through explicit state transitions. Reference and instructor-only cards cannot leak into generated starter problems.
 
-## Chain Conductor 3
+## Response-family model
 
-- Ordinary chain blocks now use the same full-fit calculation as P4.
-- No new chain begins if its final recovery/disengagement node cannot be delivered before the block ends.
-- Constrained selection reduces accidental repetitive chain exposure.
+State Lab uses 10 broad families:
 
-## Practitioner Overlay
+- Observe / Hold
+- Verbal Boundary
+- Move / Manage Space
+- Cover / Organize
+- Frame
+- Clinch / Connect
+- Off-Balance / Entry
+- Recover Posture
+- Recover Mobility
+- Disengage / Exit
 
-Technique dossiers now support local practitioner state without editing the canonical corpus:
+After a decision, RENSA reveals the current modeled family set and, where applicable, links those families back to existing retained technique nodes. The app explicitly describes this as model compatibility rather than universal tactical or legal correctness.
 
-- **HOLD:** temporarily excludes a session-eligible movement from generation where possible.
-- **RETURN:** restores it.
-- If a held technique occurs in a fixed plan block, RENSA substitutes a quiet safe fallback rather than silently deleting the planned block.
-- Holds are constrained so the adaptive focus pool cannot be reduced below two available focus techniques.
-- Private local notes may be stored per technique.
+## Provenance
 
-## Persistence and Recovery
+v4 introduces explicit provenance classes:
 
-- New primary key: `rensa-state-v3`.
-- v2 and v1 state keys remain preserved as predecessor/rollback sources.
-- If current v3 state is corrupt/unreadable, startup can fall back to valid v2, then v1 state.
-- Compatible v2 active-session checkpoints may be sanitized into the v3 active-session format.
-- Recovered sessions always resume paused and do not credit closed/background time.
+- RENSA ABSTRACTION
+- COURSE-DERIVED SYNTHESIS
+- PERSONAL MEMORY
+- INSTRUCTOR-ONLY REFERENCE
 
-## Service Worker / Update Safety
+This is intended to prevent a later RENSA abstraction from being mistaken for something an instructor said or taught verbatim.
 
-v2's worker could activate too aggressively. v3 intentionally does **not** call `skipWaiting()` during install.
+## Instructor-only boundary
 
-When a new worker is waiting, the foreground app owns activation through the UPDATE action. This prevents an in-progress training session from being involuntarily displaced by an update.
+v4 adds the `INSTRUCTOR` representation class. Instructor-derived tool-context domains may be indexed for provenance, but the autonomous compiler is prohibited from generating operational weapon-use procedures.
 
-## Corpus / session invariants
+## Evidence integrity
 
-Frozen v3 corpus and timing:
+State evidence is isolated from technique evidence and the adaptive motor scheduler. Historical State decisions snapshot the v4 model version, problem title, selected-family label, and admissible family IDs.
 
-- 24 movement/technique nodes
-- 8 transition chains
-- 18 typed chain edges
-- 18 glossary entries
-- 9 curriculum stages
-- FULL = 3000 seconds
-- COMPACT = 1200 seconds
-- QA PREVIEW = 300 seconds
+Results are deliberately limited to:
 
-## Compatibility
+- `compatible`
+- `outside-model`
+- `unsure`
 
-v3 is intended as a drop-in replacement for v2 repository files. Do not manually merge runtime JavaScript. Follow `UPGRADE_FROM_V2.md`.
+“Outside model” is not presented as a universal tactical or legal judgment.
+
+## Migration
+
+- new state key: `rensa-state-v4`
+- new active-session key: `rensa-active-v4`
+- compatible migration sources: v3, v2, v1
+- old storage keys are preserved
+- legacy `CHAINS` route migrates to the new `STATE` workspace
+
+## Existing engines deliberately unchanged
+
+The following v3 field components remain materially unchanged in v4:
+
+- 50/20/5-minute weekly plans;
+- technique evidence engine;
+- adaptive focus scheduler;
+- constrained laterality/cue bags;
+- Pressure Engine 3;
+- technique hold/return overlay;
+- active-session checkpointing;
+- service-worker update handshake.
+
+This separation is intentional: State Engine behavior can now be field-tested without confounding it with a simultaneous rewrite of the motor conductor.

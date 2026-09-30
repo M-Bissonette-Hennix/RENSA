@@ -1,48 +1,75 @@
-# RENSA v3.0.0
+# RENSA v4.0.0
 
-**Adaptive Combatives Recall — pre-field hardened release**
+**Adaptive Combatives Recall // State Engine 1**
 
-RENSA is a local-first GitHub Pages PWA for compact solo recall and maintenance of a curated hybrid combatives vocabulary. It is built around a hard default environment profile: approximately **72 × 24 inches**, apartment-quiet, solo, zero-impact, no partner dependency, optional resistance band.
+RENSA v4 is a local-first GitHub Pages PWA for maintaining an existing hybrid empty-hand skill set and rehearsing decision selection under constrained, apartment-safe conditions. v4 preserves the v3 weekly conductor and Pressure Engine 3 while adding a separate **State Engine** above the technique graph.
 
-RENSA is not a substitute for live coaching, resistance, sparring, randori, partner sensitivity work, or safe supervised submission/throw practice. Its job is narrower: preserve and retrieve already-known movement patterns, expose them under controlled information pressure, and record honest evidence about recall without pretending solo rehearsal equals live competence.
+## What changed in v4
 
-## v3 field baseline
+v4 introduces a formal problem-state model:
 
-v3.0.0 hardens v2 for routine weekly use. Major changes include:
+`DISTANCE × ENTANGLEMENT × ORIENTATION × MOBILITY × HAND AVAILABILITY × INFORMATION × OBJECTIVE`
 
-- three-way evidence semantics: **exposure credit**, **adaptive credit**, and **session completion** are separate;
-- partial sessions can preserve truthful rated evidence without being mislabeled completed;
-- balanced LEFT/RIGHT shuffle bags and no-immediate-repeat technique bags;
-- coverage-oriented maintenance and chain selection;
-- P6 BLIND and P8 noise-gate side-channel suppression;
-- terminal-aware chain scheduling so recovery nodes are not truncated;
-- safe service-worker update lifecycle: updates wait for explicit foreground activation;
-- v3 → v2 → v1 storage fallback and v2 active-checkpoint recovery;
-- per-technique **HOLD / RETURN** control and private local notes;
-- stricter import sanitation, including rejection of evidence with invalid timestamps.
+The State Lab compiles a safe Problem Card from those axes and asks for a **response family**, not one predetermined technique. Multiple response families can be modeled as compatible with the same state.
 
-## Frozen session durations
+The objective hierarchy is:
 
-- **FULL:** 50:00
-- **COMPACT:** 20:00
-- **QA PREVIEW:** 05:00, no training credit
+**AVOID → STABILIZE → RESOLVE**
 
-## Deployment
+This hierarchy and several contact-management concepts are preserved as **course-derived synthesis** from the user's redacted post-course notes. RENSA marks that provenance explicitly; it does not imply verbatim instructor doctrine.
 
-The contents of the release ZIP belong at the **repository root**. Do not place them inside a version subfolder.
+## Hard boundary
 
-For an existing v2 installation, see `UPGRADE_FROM_V2.md`.
+Generated v4 State Lab problems are cognitive / empty-hand only. The compiler requires:
 
-## Data
+- no partner;
+- no impact;
+- no functional weapon;
+- no live fire.
 
-v3 stores its primary state under a new v3 key and preserves predecessor keys for rollback/migration. Exporting data from SET before an upgrade remains recommended.
+Previously trained IFWA/tool-context material can be indexed only as **INSTRUCTOR** reference. v4 does not encode or generate access, draw, firing, retention, manipulation, malfunction, or other operational weapon procedure.
 
-## Included release-control documents
+## Environment
 
-- `V2_HOSTILE_AUDIT.md` — pre-field audit that drove v3
-- `RELEASE_NOTES.md` — exact v3 changes
-- `SPEC.md` — frozen architecture and evidence semantics
-- `QA_REPORT.md` — pre-release test record
-- `UPGRADE_FROM_V2.md` — live-repository replacement procedure
-- `FIELD_TEST_PROTOCOL.md` — first weekly-use observation protocol
-- `CHECKSUMS.sha256` — per-file integrity manifest
+Default field profile remains:
+
+- solo;
+- quiet apartment;
+- 72 × 24 inch mat lane;
+- zero impact;
+- no partner;
+- optional resistance band;
+- no live resistance.
+
+## Weekly conductor
+
+The v3 motor conductor is intentionally preserved rather than silently rewritten while the new State Engine is unfielded:
+
+- FULL — 50:00
+- COMPACT — 20:00
+- QA PREVIEW — 05:00, no training credit
+
+## State evidence
+
+State decisions are stored separately from technique evidence. A State Lab selection cannot affect the weekly focus scheduler.
+
+Each decision stores:
+
+- problem ID;
+- problem-title snapshot;
+- full state vector;
+- selected response family;
+- result: `compatible`, `outside-model`, or `unsure`;
+- objective;
+- continuation depth;
+- provenance class;
+- RENSA model version;
+- admissible-family snapshot.
+
+This prevents later model changes from silently reinterpreting old decisions.
+
+## Data migration
+
+v4 writes to `rensa-state-v4` / `rensa-active-v4` and can migrate v3, v2, or v1 state. Prior storage keys remain untouched as rollback sources.
+
+See `UPGRADE_FROM_V3.md`, `SPEC.md`, `QA_REPORT.md`, and `FIELD_TEST_PROTOCOL.md` before first use.

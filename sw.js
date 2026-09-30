@@ -1,4 +1,4 @@
-const CACHE='rensa-v3.0.0';
+const CACHE='rensa-v4.0.0';
 const CORE=['./','./index.html','./css/styles.css','./js/app.js','./js/data.js','./manifest.webmanifest','./assets/icon.svg','./assets/icon-192.png','./assets/icon-512.png'];
 self.addEventListener('install',event=>{
   // Do not skip waiting on an update: the foreground app owns the reload decision so an active session is never displaced.

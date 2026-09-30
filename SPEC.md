@@ -1,154 +1,172 @@
-# RENSA v3.0.0 — Frozen System Specification
+# RENSA v4.0.0 — Frozen System Specification
 
 ## 1. Mission
 
-RENSA is a compact, solo, local-first recall and maintenance system for a curated hybrid combatives vocabulary. It prioritizes retrieval, sequencing, laterality, interruption, and transition recall under controlled information pressure.
+RENSA is a personal recall-and-maintenance platform for an existing hybrid combatives skill set. It is not a certification system, belt curriculum, competence oracle, or replacement for live coaching/resistance.
 
-It does not claim to generate live-fighting competence from solo work and does not substitute for partner drilling, sparring, randori, live resistance, tactile sensitivity training, or qualified coaching.
+v4 adds a state/decision layer whose purpose is to rehearse identification of a problem state, current objective, and potentially compatible response family.
 
-## 2. Default environment profile
+## 2. Environment invariant
 
-- usable lane: approximately 72 × 24 inches;
-- apartment-quiet;
-- no throw completion;
-- no impact breakfalls;
-- no jumping requirement;
-- no partner requirement;
-- no bag/pad requirement;
-- bodyweight default;
-- resistance band optional;
-- difficulty is increased primarily through information/retrieval pressure, not reckless movement speed.
+Default environment:
+
+- footprint: 72 × 24 inches;
+- partner: none;
+- impact: none;
+- live resistance: none;
+- noise: quiet;
+- functional weapons: disabled;
+- live fire: disabled.
+
+The State compiler may emit only cards whose declared requirements are compatible with this environment.
 
 ## 3. Representation classes
 
-- **FULL** — relevant solo motor task can be practiced meaningfully in the configured environment.
-- **SHADOW** — non-contact motor pattern can be rehearsed but resistance/timing/opponent interaction are absent.
-- **PROXY** — surrogate preserves part of a skill while a defining component is unavailable.
-- **REFERENCE** — knowledge/sequencing recall only in the configured environment.
-- **DISABLED** — excluded from generated sessions.
+- `FULL`
+- `SHADOW`
+- `PROXY`
+- `REFERENCE`
+- `DISABLED`
+- `INSTRUCTOR`
 
-Representation is descriptive, not a mastery score.
+`INSTRUCTOR` means previously trained/instructor-derived material can be indexed for provenance or context but RENSA does not autonomously teach or generate its operational procedure.
 
-## 4. Evidence semantics
+## 4. State vector
 
-Every evidence event has independent credit dimensions.
+Every Problem Card has exactly one value for each axis:
 
-### 4.1 Exposure credit
+### Distance
+- standoff
+- close
+- contact
 
-Indicates that the relevant technique/movement was meaningfully presented/rehearsed under a creditable session condition.
+### Entanglement
+- none
+- clinch
+- surface-constrained
+- grounded
 
-### 4.2 Adaptive credit
+### Orientation
+- frontal
+- lateral
+- turned
+- seated
 
-Indicates that the event contains an explicit rated performance result suitable for scheduler weighting.
+### Mobility
+- free
+- restricted
+- pinned
+- transitional
 
-Only these results are adaptive evidence:
+### Hand availability
+- both free
+- one occupied
+- one unavailable
+- both engaged
 
-- `clean`
-- `hesitant`
-- `miss`
+### Information
+- unknown
+- concerning
+- boundary violated
+- confirmed contact
+- resolved
 
-`unrated` remains a valid honest state and is never converted into positive evidence.
+### Objective
+- avoid
+- stabilize
+- resolve
 
-### 4.3 Session completion
+## 5. Objective hierarchy
 
-Whole-session status is independent from evidence-event credit. A session may be `partial` while still containing valid rated technique evidence. Conversely, reaching a log screen does not make a session completed.
+**AVOID → STABILIZE → RESOLVE**
 
-FULL/COMPACT weekly completion requires all planned blocks to reach their endpoints. QA PREVIEW never earns training credit.
+RENSA treats this as a course-derived synthesis from the user's notes. It is not encoded as a universal legal rule or attributed as verbatim instructor language.
 
-## 5. Adaptive scheduling
+## 6. Problem compiler
 
-The adaptive focus pool is the retained seven-entry active takedown set unless practitioner holds temporarily remove entries.
+A random starter must:
 
-Until sufficient rated evidence exists, RENSA uses a deterministic coverage rotation.
+1. be `entryEligible`;
+2. not be `REFERENCE` or `INSTRUCTOR`;
+3. require no partner;
+4. require no impact;
+5. require no functional weapon;
+6. require no live fire;
+7. satisfy the current environment profile.
 
-Once activated, the scheduler considers:
+Continuation-only cards may be reached from an explicit `continuations` edge. `REFERENCE` and `INSTRUCTOR` cards remain non-generative even when addressed directly by the normal compiler.
 
-- technique recency;
-- underexposure;
-- recent `miss` / `hesitant` evidence;
-- bilateral exposure imbalance where applicable;
-- recent focus-session coverage;
-- cooldown against repeatedly assigning the same focus item.
+## 7. Response families
 
-The scheduler is corrective, not a mastery estimator.
+A Problem Card admits zero or more broad response families. More than one family may be compatible. The engine records the user's selection against the card's modeled set; it does not claim a single universal answer.
 
-## 6. Constrained randomization
+The v4 family set is:
 
-Random cueing must not defeat coverage intent.
+`OBSERVE, VERBALIZE, MOVE, COVER, FRAME, CLINCH, OFF_BALANCE, RECOVER_POSTURE, RECOVER_MOBILITY, DISENGAGE`
 
-- bilateral side cues use balanced shuffle bags;
-- pressure technique pools avoid immediate repeat where alternatives exist;
-- maintenance cycles eligible entries before reuse;
-- chain selection cycles eligible chains before reuse.
+Some families map to existing motor nodes; purely cognitive channels do not.
 
-## 7. Pressure ladder
+## 8. State evidence
 
-- **P1 PATTERN / RECALL:** concrete technique cues.
-- **P2 SIDE:** technique plus meaningful laterality where supported.
-- **P3 INTERRUPT:** stateful technique → CHANGE/RESET → substitute/recovery.
-- **P4 CHAIN:** sequential chain nodes conducted over time.
-- **P5 COMPRESSION:** reduced decision interval within safe movement constraints.
-- **P6 BLIND:** audio-led retrieval with visual cue identity suppressed.
-- **P7 CATEGORY:** category/functional cue requiring self-selection.
-- **P8 NOISE:** relevant and irrelevant vocabulary share the same delivery channel; semantic discrimination is required.
+State evidence is independent of motor/technique evidence.
 
-No pressure level is permitted to use hidden UI metadata to reveal the answer.
+Required fields:
 
-## 8. Chain scheduling
+- timestamp;
+- problem ID;
+- problem title snapshot;
+- state vector;
+- selected response-family ID / label snapshot;
+- result;
+- objective;
+- continuation depth;
+- provenance class;
+- model version;
+- admissible-family snapshot.
 
-A chain is a sequence of real corpus node IDs. Chain playback is temporal, not a single spoken memorization string.
+Valid results:
 
-A chain may only start when the complete remaining node sequence, including terminal recovery/disengagement, fits inside the remaining block/window.
+- `compatible`
+- `outside-model`
+- `unsure`
 
-## 9. Session clocks
+An invalid/missing family cannot be sanitized into a positive or negative model judgment; it becomes `unsure`.
 
-Frozen durations:
+## 9. Provenance
 
-- FULL: 3000 s
-- COMPACT: 1200 s
-- QA PREVIEW: 300 s
+Every course-derived Problem Card carries provenance metadata. RENSA distinguishes its own abstraction from course-derived synthesis and instructor-only reference.
 
-Clock credit is elapsed-time based rather than callback-count based. Background/visibility gaps do not become automatic training credit.
+## 10. Weekly motor conductor
 
-## 10. Practitioner overlay
+Frozen durations remain:
 
-Canonical technique data is immutable during ordinary use. Personal state lives separately:
+- FULL: 3000 seconds
+- COMPACT: 1200 seconds
+- QA PREVIEW: 300 seconds
 
-- held technique IDs;
-- technique-specific private notes;
-- session/evidence history.
+State Lab is intentionally standalone in v4 and does not alter these budgets or the adaptive focus scheduler.
 
-HOLD never deletes the technique from the reference library. Generated sessions either exclude it or substitute an explicit safe fallback when a fixed block requires structural continuity.
+## 11. Pressure Engine
 
-## 11. Persistence
+Pressure Engine 3 remains the v3 field-hardened implementation. v4 does not silently fuse the unfielded State Engine into pressure generation.
 
-Primary state schema: **3**.
+## 12. Tool-context boundary
+
+The v4 generated problem corpus contains no access, draw, firing, retention, manipulation, malfunction, live-fire, or other operational weapon-use procedure.
+
+IFWA and dry-practice domains may exist only as `INSTRUCTOR`/boundary records in v4.
+
+## 13. Persistence and migration
 
 Primary keys:
 
-- `rensa-state-v3`
-- `rensa-active-v3`
+- `rensa-state-v4`
+- `rensa-active-v4`
 
-Preserved predecessor inputs:
+Fallback sources:
 
-- `rensa-state-v2`
-- `rensa-state-v1`
-- compatible `rensa-active-v2`
+- v3
+- v2
+- v1
 
-Startup preference: valid v3 → valid v2 migration → valid v1 migration → defaults.
-
-Malformed evidence with invalid timestamps is dropped, not assigned artificial recency.
-
-## 12. Update safety
-
-A newly installed service worker waits. The application presents an update action and explicitly sends `SKIP_WAITING` only when the user chooses to update. An active session should not be displaced silently by service-worker activation.
-
-## 13. Frozen corpus counts
-
-- 24 technique/movement nodes
-- 8 chains
-- 18 typed edges
-- 18 glossary entries
-- 9 curriculum stages
-
-These counts are release invariants, not claims of comprehensive combatives coverage.
+Prior keys are not deleted during migration.

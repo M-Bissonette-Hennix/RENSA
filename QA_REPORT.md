@@ -1,82 +1,85 @@
-# RENSA v3.0.0 — Frozen QA Report
+# RENSA v4.0.0 — Frozen QA Report
 
-## Result
+## Frozen invariants
 
-**PASS — pre-field release candidate accepted for packaging.**
+- application version: 4.0.0
+- schema version: 4
+- technical/movement nodes: 24
+- transition chains: 8
+- glossary entries: 24
+- curriculum stages: 10
+- Problem Cards: 10
+- response families: 10
+- State axes: 7
+- FULL: 3000 s / 50:00
+- COMPACT: 1200 s / 20:00
+- QA PREVIEW: 300 s / 05:00
 
-## Static/data integrity
+## Static integrity checks
 
-Validated from the final source tree:
+PASS:
 
-- application version: 3.0.0;
-- schema version: 3;
-- 24 unique technique/movement IDs;
-- 8 chain IDs;
-- 18 typed chain edges;
-- 18 glossary entries;
-- 9 curriculum stages;
-- all chain node references resolve to corpus IDs;
-- all prerequisite/reference relationships checked by static QA;
-- FULL session = exactly 3000 seconds;
-- COMPACT session = exactly 1200 seconds;
-- QA PREVIEW = exactly 300 seconds;
-- service-worker core asset list resolves to shipped runtime assets.
+- `js/app.js` syntax
+- `js/data.js` syntax
+- every technique ID unique and referenced IDs resolve
+- every chain node resolves to a technique
+- every curriculum technique reference resolves
+- every Problem Card contains all seven axes
+- every axis value is in the declared vocabulary
+- every allowed response-family ID resolves
+- every continuation ID resolves
+- every response-family technique mapping resolves
+- generated Problem Cards require no partner, impact, functional weapon, or live fire
+- generated Problem Card title/prompt/family corpus contains no operational draw/fire/manipulation procedure
+- `INSTRUCTOR` records remain separate from generated cards
+- service-worker cache version is v4.0.0
+- service-worker install does not force `skipWaiting()`
 
-## Runtime engine QA
+## Exact-source runtime harness
 
-Deterministic runtime tests passed:
+The final `data.js` and `app.js` sources were combined only for the QA runtime harness; their application logic was not rewritten.
 
-- balanced bilateral side bag produced equal LEFT/RIGHT counts across a controlled run;
-- constrained draw bag avoided pathological immediate-repeat behavior;
-- adaptive focus selection promoted intentionally seeded weak evidence (`miss` / `hesitant`) over clean comparators;
-- P8 generated a mixture of valid and noise cues without presentation-channel classification metadata;
-- v3 evidence sanitation rejects invalid timestamps rather than assigning current recency;
-- state fallback/migration paths preserve predecessor storage rather than overwriting it;
-- compatible saved sessions reopen paused with credited time preserved.
+PASS:
 
-## Browser-interaction QA
+- State route renders `STATE ENGINE 1`
+- seven State cells render
+- ten response-family controls render
+- a modeled-compatible selection records `compatible`
+- an incompatible selection records `outside-model`
+- reveal-without-claim records `unsure`
+- State decision creates no weekly session count or technique-evidence change
+- decision history renders
+- historical decision snapshots store model version and admissible-family set
+- continuation enters only a declared continuation and increments depth
+- 250 generated starter samples all satisfy the environment compiler
+- 250 generated starter samples contain no `REFERENCE` / `INSTRUCTOR` leakage
+- Library still renders 24 technical cards
+- Curriculum renders Stage 10 / State reasoning
 
-An exact-source Chromium harness was used to exercise the final HTML/CSS/ES-module application where direct local HTTP navigation was blocked by the managed environment.
+## Migration harness
 
-Verified:
+A seeded v3 state was migrated through the final v4 migration code.
 
-- TODAY renders;
-- PRESSURE renders;
-- LIBRARY renders 24 cards;
-- CHAINS renders all 8 chains;
-- LEDGER renders;
-- technique dossier opens;
-- HOLD / RETURN interaction works;
-- QA PREVIEW starts and completes;
-- QA PREVIEW completion reports **NO CREDIT**;
-- QA PREVIEW leaves session count, ledger, and evidence untouched;
-- P6 visual state does not reveal current cue identity through the main cue/assessment/band UI;
-- P8 suppresses per-cue assessment controls and does not label irrelevant cues as noise;
-- no browser errors or console warnings were observed in the final interaction pass.
+PASS:
 
-## Timing / chain hardening checks
+- v3 route `chains` maps to `state`
+- stance preserved
+- credited weekly count preserved
+- held technique preserved
+- practitioner note preserved
+- a new v4 key is written
+- original v3 key remains present
+- State decisions begin separately from technique evidence
 
-- P4 chain fit uses complete sequence duration, including terminal node timing;
-- ordinary chain conductor uses the same no-truncation rule;
-- a chain is not started when the remaining window cannot contain the full sequence;
-- P3 substitute selection excludes the initiating concrete technique when alternatives exist.
+## Browser limitation
 
-## Service-worker lifecycle check
+The managed Chromium environment available during this build blocks file, data, localhost, and synthetic test origins before page content can execute. I therefore do not claim a direct real-origin browser pass for the undeployed v4 build.
 
-Confirmed from final `sw.js`:
+Compensation:
 
-- install caches core assets;
-- install does **not** call `skipWaiting()`;
-- `SKIP_WAITING` occurs only in response to an explicit foreground message;
-- activation removes obsolete RENSA caches and claims clients;
-- GET requests use network-first with cache fallback and navigation fallback to `index.html`.
+- source-level validation of the exact multi-file tree;
+- exact-source runtime harness using browser-compatible DOM stubs;
+- local HTTP asset delivery check;
+- final ZIP re-extraction and checksum verification.
 
-## Known QA-environment limitation
-
-The managed Chromium environment blocks direct navigation to local HTTP origins. To avoid treating this as a pass-by-assumption, browser QA used a controlled origin harness that served the exact final multi-file sources into Chromium. Static and deterministic runtime tests were also executed independently.
-
-The definitive final acceptance environment remains the deployed GitHub Pages origin.
-
-## Field-release caveat
-
-This QA establishes software and protocol integrity; it does not establish the real-world value of the training design. v3.0.0 is specifically intended to begin manual weekly field testing. The observation protocol is in `FIELD_TEST_PROTOCOL.md`.
+The user's deployed GitHub Pages origin is the final real-browser acceptance environment.
